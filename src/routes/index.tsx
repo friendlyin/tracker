@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { NutritionDayStatusDto } from "../../shared/nutrition/types";
 import type { HomeDto } from "../../shared/profile";
+import { FocusTile } from "../features/focus/HomeTile";
 import { kcalLine, proteinLine } from "../features/nutrition/Summary";
 import { useHome } from "../features/profile";
 import { WaterTile } from "../features/water/HomeTile";
@@ -23,8 +24,8 @@ interface Widget {
   unit?: string;
   progress?: { value: number; max: number };
   live?: boolean;
-  /** Renders its own tile (water has a one-tap button inside). */
-  custom?: boolean;
+  /** Renders its own tile (water and focus have one-tap buttons inside). */
+  tile?: ComponentType<{ className: string }>;
 }
 
 /** kcal and protein as two equal numbers with their own bars. */
@@ -76,8 +77,8 @@ function widgets(home: HomeDto | undefined): Widget[] {
       body: n ? <NutritionTile s={n} /> : undefined,
       value: n ? undefined : "–",
     },
-    { key: "water", label: "Water", custom: true },
-    { key: "focus", label: "Focus" },
+    { key: "water", label: "Water", tile: WaterTile },
+    { key: "focus", label: "Focus", tile: FocusTile },
   ];
 }
 
@@ -116,8 +117,8 @@ function Tiles({ items }: { items: Widget[] }) {
   return (
     <div className="grid grid-cols-2 gap-2">
       {items.map((w) =>
-        w.custom ? (
-          <WaterTile key={w.key} className={tileClass} />
+        w.tile ? (
+          <w.tile key={w.key} className={tileClass} />
         ) : (
           <WidgetShell key={w.key} w={w} className={tileClass}>
             <Label w={w} />

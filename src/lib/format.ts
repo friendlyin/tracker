@@ -43,3 +43,12 @@ const timeFmt = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2
 
 /** "12:30" for an instant (device timezone). */
 export const fmtTime = (ms: number) => timeFmt.format(new Date(ms));
+
+/** A running timer: "4:05", "42:05", "1:02:05". */
+export const fmtElapsed = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(mm).padStart(2, "0")}:${ss}` : `${mm}:${ss}`;
+};

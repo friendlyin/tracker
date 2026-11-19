@@ -67,3 +67,13 @@ export const CloseIcon = (p: P) => (
     <path d="M6 6l12 12M18 6L6 18" />
   </Svg>
 );
+export const PlayIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M8 5v14l11-7z" />
+  </Svg>
+);
+export const StopIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M6 6h12v12H6z" />
+  </Svg>
+);

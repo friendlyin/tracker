@@ -15,8 +15,9 @@ export function useUpdateMe() {
       api<MeDto>("/me", { method: "PATCH", body: patch }),
     onSuccess: (me) => {
       qc.setQueryData(["me"], me);
-      // Wake and sleep times drive the water simulation.
+      // Wake and sleep times drive the water and focus simulations.
       qc.invalidateQueries({ queryKey: ["water"] });
+      qc.invalidateQueries({ queryKey: ["focus"] });
     },
   });
 }
