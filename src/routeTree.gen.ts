@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as NutritionIndexRouteImport } from './routes/nutrition/index'
+import { Route as NutritionSettingsRouteImport } from './routes/nutrition/settings'
 import { Route as WorkoutsIndexRouteImport } from './routes/workouts/index'
 import { Route as WorkoutsNewRouteImport } from './routes/workouts/new'
 import { Route as WorkoutsSettingsRouteImport } from './routes/workouts/settings'
@@ -27,6 +29,16 @@ const IndexRoute = IndexRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NutritionIndexRoute = NutritionIndexRouteImport.update({
+  id: '/nutrition/',
+  path: '/nutrition/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NutritionSettingsRoute = NutritionSettingsRouteImport.update({
+  id: '/nutrition/settings',
+  path: '/nutrition/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkoutsIndexRoute = WorkoutsIndexRouteImport.update({
@@ -70,8 +82,10 @@ const WorkoutsHistoryWorkoutIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/nutrition/settings': typeof NutritionSettingsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/nutrition/': typeof NutritionIndexRoute
   '/workouts/': typeof WorkoutsIndexRoute
   '/workouts/edit/$exerciseId': typeof WorkoutsEditExerciseIdRoute
   '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
@@ -81,8 +95,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/nutrition/settings': typeof NutritionSettingsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/nutrition': typeof NutritionIndexRoute
   '/workouts': typeof WorkoutsIndexRoute
   '/workouts/edit/$exerciseId': typeof WorkoutsEditExerciseIdRoute
   '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
@@ -93,8 +109,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/nutrition/settings': typeof NutritionSettingsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/nutrition/': typeof NutritionIndexRoute
   '/workouts/': typeof WorkoutsIndexRoute
   '/workouts/edit/$exerciseId': typeof WorkoutsEditExerciseIdRoute
   '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
@@ -106,8 +124,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/settings'
+    | '/nutrition/settings'
     | '/workouts/new'
     | '/workouts/settings'
+    | '/nutrition/'
     | '/workouts/'
     | '/workouts/edit/$exerciseId'
     | '/workouts/exercise/$exerciseId'
@@ -117,8 +137,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/settings'
+    | '/nutrition/settings'
     | '/workouts/new'
     | '/workouts/settings'
+    | '/nutrition'
     | '/workouts'
     | '/workouts/edit/$exerciseId'
     | '/workouts/exercise/$exerciseId'
@@ -128,8 +150,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/settings'
+    | '/nutrition/settings'
     | '/workouts/new'
     | '/workouts/settings'
+    | '/nutrition/'
     | '/workouts/'
     | '/workouts/edit/$exerciseId'
     | '/workouts/exercise/$exerciseId'
@@ -140,8 +164,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SettingsRoute: typeof SettingsRoute
+  NutritionSettingsRoute: typeof NutritionSettingsRoute
   WorkoutsNewRoute: typeof WorkoutsNewRoute
   WorkoutsSettingsRoute: typeof WorkoutsSettingsRoute
+  NutritionIndexRoute: typeof NutritionIndexRoute
   WorkoutsIndexRoute: typeof WorkoutsIndexRoute
   WorkoutsEditExerciseIdRoute: typeof WorkoutsEditExerciseIdRoute
   WorkoutsExerciseExerciseIdRoute: typeof WorkoutsExerciseExerciseIdRoute
@@ -163,6 +189,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nutrition/': {
+      id: '/nutrition/'
+      path: '/nutrition'
+      fullPath: '/nutrition/'
+      preLoaderRoute: typeof NutritionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nutrition/settings': {
+      id: '/nutrition/settings'
+      path: '/nutrition/settings'
+      fullPath: '/nutrition/settings'
+      preLoaderRoute: typeof NutritionSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workouts/': {
@@ -220,8 +260,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SettingsRoute: SettingsRoute,
+  NutritionSettingsRoute: NutritionSettingsRoute,
   WorkoutsNewRoute: WorkoutsNewRoute,
   WorkoutsSettingsRoute: WorkoutsSettingsRoute,
+  NutritionIndexRoute: NutritionIndexRoute,
   WorkoutsIndexRoute: WorkoutsIndexRoute,
   WorkoutsEditExerciseIdRoute: WorkoutsEditExerciseIdRoute,
   WorkoutsExerciseExerciseIdRoute: WorkoutsExerciseExerciseIdRoute,

@@ -33,3 +33,13 @@ export const fmtClock = (ms: number) => {
 /** "60 × 8" or "× 12" for bodyweight. */
 export const fmtSet = (s: { reps: number; weightKg: number | null }) =>
   s.weightKg ? `${fmtKg(s.weightKg)} × ${s.reps}` : `× ${s.reps}`;
+
+const intFmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+
+/** Whole number with the locale's grouping, e.g. "1,880". */
+export const fmtInt = (n: number) => intFmt.format(Math.round(n));
+
+const timeFmt = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+
+/** "12:30" for an instant (device timezone). */
+export const fmtTime = (ms: number) => timeFmt.format(new Date(ms));

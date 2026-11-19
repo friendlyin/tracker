@@ -4,7 +4,9 @@ import { api } from "../lib/api";
 
 export const useMe = () => useQuery({ queryKey: ["me"], queryFn: () => api<MeDto>("/me") });
 
-export const useHome = () => useQuery({ queryKey: ["home"], queryFn: () => api<HomeDto>("/home") });
+/** Always refetched on open and focus: Claude can change the data from outside the app. */
+export const useHome = () =>
+  useQuery({ queryKey: ["home"], queryFn: () => api<HomeDto>("/home"), staleTime: 0 });
 
 export function useUpdateMe() {
   const qc = useQueryClient();

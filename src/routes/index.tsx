@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import type { NutritionDayStatusDto } from "../../shared/nutrition/types";
 import type { HomeDto } from "../../shared/profile";
+import { useVariant } from "../dev/variants";
+import { kcalLine, proteinLine } from "../features/nutrition/Summary";
 import { useHome } from "../features/profile";
 import { fmtSets } from "../lib/format";
 import { cx } from "../ui/cx";
-import { PersonIcon } from "../ui/icons";
+import { CheckIcon, PersonIcon } from "../ui/icons";
 import { ProgressBar } from "../ui/ProgressBar";
 import { IconLink } from "../ui/Screen";
 
@@ -13,15 +16,76 @@ export const Route = createFileRoute("/")({ component: Home });
 interface Widget {
   key: string;
   label: string;
-  to?: "/workouts";
+  to?: "/workouts" | "/nutrition";
+  /** Custom tile body; otherwise value + unit + progress. */
+  body?: ReactNode;
   value?: ReactNode;
   unit?: string;
   progress?: { value: number; max: number };
   live?: boolean;
 }
 
-function widgets(home: HomeDto | undefined): Widget[] {
+/** Variant "kcal": kcal left leads, protein underneath. */
+function NutritionKcal({ s }: { s: NutritionDayStatusDto }) {
+  const k = kcalLine(s);
+  const p = proteinLine(s);
+  return (
+    <div>
+      <div
+        className={cx(
+          "num text-[40px] leading-none font-semibold",
+          k.tone === "warn" && "text-warn",
+        )}
+      >
+        {k.value}
+      </div>
+      <div className="mt-1 text-[13px] text-ink-2">{k.unit}</div>
+      <div
+        className={cx(
+          "num mt-2 flex items-center gap-1 text-[13px]",
+          p.tone === "ok" ? "text-ok" : "text-ink-2",
+        )}
+      >
+        {p.value} {p.unit}
+        {p.tone === "ok" && <CheckIcon className="size-4" />}
+      </div>
+      <ProgressBar className="mt-3" value={k.consumed} max={k.target} tone={k.tone} />
+    </div>
+  );
+}
+
+/** Variant "split": kcal and protein as two equal numbers with their own bars. */
+function NutritionSplit({ s }: { s: NutritionDayStatusDto }) {
+  return (
+    <div className="space-y-3">
+      {[kcalLine(s), proteinLine(s)].map((l) => (
+        <div key={l.unit}>
+          <div className="flex items-baseline gap-1.5">
+            <span
+              className={cx(
+                "num text-[26px] leading-none font-semibold",
+                l.tone === "warn" && "text-warn",
+                l.tone === "ok" && "text-ok",
+              )}
+            >
+              {l.value}
+            </span>
+            <span className="text-[12px] text-ink-2">
+              {l.unit.startsWith("kcal") ? "kcal" : "g"}
+            </span>
+            {l.tone === "ok" && <CheckIcon className="size-4 text-ok" />}
+            {l.tone === "warn" && <span className="text-[12px] text-warn">over</span>}
+          </div>
+          <ProgressBar className="mt-1.5" value={l.consumed} max={l.target} tone={l.tone} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function widgets(home: HomeDto | undefined, Nutrition: typeof NutritionKcal): Widget[] {
   const w = home?.workouts;
+  const n = home?.nutrition;
   return [
     {
       key: "workouts",
@@ -32,7 +96,13 @@ function widgets(home: HomeDto | undefined): Widget[] {
       progress: w ? { value: w.done, max: w.target } : undefined,
       live: w?.active,
     },
-    { key: "nutrition", label: "Nutrition" },
+    {
+      key: "nutrition",
+      label: "Nutrition",
+      to: "/nutrition",
+      body: n ? <Nutrition s={n} /> : undefined,
+      value: n ? undefined : "–",
+    },
     { key: "water", label: "Water" },
     { key: "focus", label: "Focus" },
   ];
@@ -77,7 +147,9 @@ function Tiles({ items }: { items: Widget[] }) {
           className="flex aspect-square flex-col justify-between rounded-md bg-surface p-4"
         >
           <Label w={w} />
-          {w.value !== undefined ? (
+          {w.body ? (
+            w.body
+          ) : w.value !== undefined ? (
             <div>
               <div className="num text-[40px] leading-none font-semibold">{w.value}</div>
               <div className="mt-1 text-[13px] text-ink-2">{w.unit}</div>
@@ -100,6 +172,7 @@ const todayFmt = new Intl.DateTimeFormat(undefined, {
 
 function Home() {
   const home = useHome();
+  const Nutrition = useVariant("home.nutrition", { kcal: NutritionKcal, split: NutritionSplit });
   return (
     <div className="min-h-dvh px-4">
       <header className="pt-safe flex h-[calc(56px+max(env(safe-area-inset-top),12px))] items-center justify-between">
@@ -108,7 +181,7 @@ function Home() {
           <PersonIcon />
         </IconLink>
       </header>
-      <Tiles items={widgets(home.data)} />
+      <Tiles items={widgets(home.data, Nutrition)} />
     </div>
   );
 }
