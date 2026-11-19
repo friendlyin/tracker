@@ -1,0 +1,16 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { HomeDto, MeDto } from "../../shared/profile";
+import { api } from "../lib/api";
+
+export const useMe = () => useQuery({ queryKey: ["me"], queryFn: () => api<MeDto>("/me") });
+
+export const useHome = () => useQuery({ queryKey: ["home"], queryFn: () => api<HomeDto>("/home") });
+
+export function useUpdateMe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<Pick<MeDto, "name" | "wakeTime" | "sleepTime">>) =>
+      api<MeDto>("/me", { method: "PATCH", body: patch }),
+    onSuccess: (me) => qc.setQueryData(["me"], me),
+  });
+}

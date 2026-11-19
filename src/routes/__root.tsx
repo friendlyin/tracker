@@ -1,10 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { VariantSwitcher } from "../dev/VariantSwitcher";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: () => (
-    <main className="mx-auto min-h-full max-w-md px-4">
+    <div className="mx-auto min-h-dvh max-w-md">
       <Outlet />
-    </main>
+      <VariantSwitcher />
+    </div>
   ),
 });

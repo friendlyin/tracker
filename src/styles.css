@@ -1,19 +1,93 @@
 @import "tailwindcss";
 
-/* Design tokens. Flat, neutral, no gradients/shadows by default — see CLAUDE.md. */
+/*
+ * Design tokens. Flat and neutral: ink on paper, one accent for progress, one warning color for
+ * urgency/risk, green only for "done". No gradients, shadows or blur (see CLAUDE.md).
+ */
+:root {
+  --paper: #fafaf8;
+  --surface: #f0f0ed;
+  --ink: #141414;
+  --ink-2: #5c5c58;
+  --ink-3: #9a9a94;
+  --line: #e2e2dd;
+  --accent: #141414;
+  --warn: #d4521c;
+  --ok: #2f7d4f;
+  --on-ink: #fafaf8;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #111111;
+    --surface: #1c1c1b;
+    --ink: #ededea;
+    --ink-2: #a3a39e;
+    --ink-3: #6b6b67;
+    --line: #2a2a28;
+    --accent: #ededea;
+    --warn: #f07a45;
+    --ok: #5cb37f;
+    --on-ink: #111111;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --color-on-ink: var(--on-ink);
+}
+
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 6px;
 }
 
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
-  @apply bg-white text-neutral-900 antialiased;
+  @apply bg-paper text-ink antialiased;
   -webkit-tap-highlight-color: transparent;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
-    env(safe-area-inset-left);
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+/* Numbers line up in lists and do not jump while counting. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 12px);
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+
+button,
+a,
+input,
+select {
+  touch-action: manipulation;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

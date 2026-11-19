@@ -26,10 +26,10 @@ const api = new Hono<AppEnv>()
   )
   .get("/home", async (c) => {
     const { db, user, tz } = c.var;
-    const [{ plan }, active] = await Promise.all([
-      getWeekPlan(db, user.id, localDate(Date.now(), tz)),
-      getActiveWorkout(db, user.id),
-    ]);
+    const active = await getActiveWorkout(db, user.id);
+    const { plan } = await getWeekPlan(db, user.id, localDate(Date.now(), tz), {
+      hasActive: active !== null,
+    });
     const body: HomeDto = { workouts: { ...plan.totals, active: active !== null } };
     return c.json(body);
   })

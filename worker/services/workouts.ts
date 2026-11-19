@@ -268,28 +268,38 @@ async function volumeBetween(db: Db, userId: string, from: string, to: string, t
 }
 
 /** Weekly budget for the week containing `today` (the user's local date). */
-export async function getWeekPlan(db: Db, userId: string, today: string) {
+export async function getWeekPlan(
+  db: Db,
+  userId: string,
+  today: string,
+  opts: { hasActive: boolean },
+) {
   const { start } = weekRange(today);
-  const [settings, vol, before] = await Promise.all([
-    getWorkoutSettings(db, userId),
-    volumeBetween(db, userId, start, today, today),
+  const countWorkouts = (from: string, toExclusive: string | null, onlyDay?: string) =>
     db
       .select({ n: sql<number>`count(*)` })
       .from(workout)
       .where(
         and(
           eq(workout.userId, userId),
-          gte(workout.localDate, start),
-          lt(workout.localDate, today),
+          onlyDay ? eq(workout.localDate, onlyDay) : gte(workout.localDate, from),
+          toExclusive ? lt(workout.localDate, toExclusive) : undefined,
         ),
-      ),
+      );
+  const [settings, vol, before, todays] = await Promise.all([
+    getWorkoutSettings(db, userId),
+    volumeBetween(db, userId, start, today, today),
+    countWorkouts(start, today),
+    countWorkouts(today, null, today),
   ]);
+  const workoutsToday = todays[0]?.n ?? 0;
   const plan = planWeek({
     settings,
     today,
     volume: vol.volume,
     volumeToday: vol.volumeToday,
     workoutsBeforeToday: before[0]?.n ?? 0,
+    todayFinished: !opts.hasActive && workoutsToday > 0 ? { workouts: workoutsToday } : undefined,
   });
   return { settings, plan };
 }
@@ -302,7 +312,7 @@ export async function getOverview(
   const active = await getActiveWorkout(db, userId);
   const today = localDate(Date.now(), tz);
   const [{ settings, plan }, recent] = await Promise.all([
-    getWeekPlan(db, userId, today),
+    getWeekPlan(db, userId, today, { hasActive: active !== null }),
     listWorkouts(db, userId, { limit: 5 }),
   ]);
   return { today, settings, plan, active, recent };

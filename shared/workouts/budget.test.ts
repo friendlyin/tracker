@@ -72,6 +72,14 @@ describe("planWeek", () => {
     const back = plan.groups.find((g) => g.group === "back");
     expect(back).toMatchObject({ todayTarget: 4, doneToday: 2, leftToday: 2 });
     expect(plan.groups.at(-1)?.group).toBe("chest");
+    const fractional = planWeek({
+      settings,
+      today: "2026-11-16",
+      volume: { ...emptyVolume(), triceps: 1.5 },
+      volumeToday: { ...emptyVolume(), triceps: 1.5 },
+      workoutsBeforeToday: 0,
+    });
+    expect(fractional.groups.find((g) => g.group === "triceps")?.leftToday).toBe(2);
     expect(plan.groups.at(-1)?.status).toBe("done");
   });
 
@@ -90,6 +98,23 @@ describe("planWeek", () => {
     expect(plan.groups.find((g) => g.group === "biceps")).toMatchObject({
       target: 12,
       todayTarget: 6,
+    });
+  });
+
+  it("plans the next workout once today's workout is finished", () => {
+    const plan = planWeek({
+      settings,
+      today: "2026-11-16",
+      volume: { ...emptyVolume(), chest: 4 },
+      volumeToday: { ...emptyVolume(), chest: 4 },
+      workoutsBeforeToday: 0,
+      todayFinished: { workouts: 1 },
+    });
+    expect(plan.remainingWorkouts).toBe(2);
+    expect(plan.groups.find((g) => g.group === "chest")).toMatchObject({
+      todayTarget: 4,
+      doneToday: 0,
+      leftToday: 4,
     });
   });
 });

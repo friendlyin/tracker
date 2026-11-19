@@ -43,7 +43,7 @@ export interface GroupPlan {
   remaining: number;
   /** Sets planned for today, computed from the state before today's workouts. */
   todayTarget: number;
-  /** todayTarget − doneToday, never negative. */
+  /** todayTarget − doneToday rounded up to whole sets, never negative. */
   leftToday: number;
   status: GroupStatus;
 }
@@ -64,6 +64,11 @@ export interface PlanWeekInput {
   volumeToday: Volume;
   /** Workouts this week that started before today. */
   workoutsBeforeToday: number;
+  /**
+   * Today's training is over (workouts today, none active). Today's workouts then count as done and
+   * the plan is for the next workout, from tomorrow.
+   */
+  todayFinished?: { workouts: number };
 }
 
 /**
@@ -71,12 +76,12 @@ export interface PlanWeekInput {
  * (today included), rounded up. A group is at risk when today's share exceeds 1.5× a normal session.
  */
 export function planWeek(input: PlanWeekInput): WeekPlan {
-  const { settings, today, volume, volumeToday, workoutsBeforeToday } = input;
+  const { settings, today, volume, workoutsBeforeToday, todayFinished } = input;
   const perWeek = settings.workoutsPerWeek;
-  const remainingWorkouts = Math.max(
-    1,
-    Math.min(perWeek - workoutsBeforeToday, daysLeftInWeek(today)),
-  );
+  const volumeToday = todayFinished ? emptyVolume() : input.volumeToday;
+  const workoutsDone = workoutsBeforeToday + (todayFinished?.workouts ?? 0);
+  const daysLeft = daysLeftInWeek(today) - (todayFinished ? 1 : 0);
+  const remainingWorkouts = Math.max(1, Math.min(perWeek - workoutsDone, daysLeft));
 
   const groups: GroupPlan[] = MUSCLE_GROUPS.map((group) => {
     const category = settings.categories[group];
@@ -86,7 +91,8 @@ export function planWeek(input: PlanWeekInput): WeekPlan {
     const remaining = Math.max(0, target - done);
     const remainingBeforeToday = Math.max(0, target - (done - doneToday));
     const todayTarget = Math.ceil(remainingBeforeToday / remainingWorkouts - 1e-9);
-    const leftToday = Math.max(0, todayTarget - doneToday);
+    // Whole sets: secondary contributions can leave a fraction (e.g. 1.5 → 2 more sets).
+    const leftToday = Math.max(0, Math.ceil(todayTarget - doneToday - 1e-9));
     const normalSession = target / perWeek;
     const status: GroupStatus =
       remaining <= 0 ? "done" : todayTarget > normalSession * 1.5 ? "at_risk" : "ok";

@@ -10,33 +10,143 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as WorkoutsIndexRouteImport } from './routes/workouts/index'
+import { Route as WorkoutsNewRouteImport } from './routes/workouts/new'
+import { Route as WorkoutsSettingsRouteImport } from './routes/workouts/settings'
+import { Route as WorkoutsEditExerciseIdRouteImport } from './routes/workouts/edit.$exerciseId'
+import { Route as WorkoutsExerciseExerciseIdRouteImport } from './routes/workouts/exercise.$exerciseId'
+import { Route as WorkoutsGroupGroupRouteImport } from './routes/workouts/group.$group'
+import { Route as WorkoutsHistoryWorkoutIdRouteImport } from './routes/workouts/history.$workoutId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutsIndexRoute = WorkoutsIndexRouteImport.update({
+  id: '/workouts/',
+  path: '/workouts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutsNewRoute = WorkoutsNewRouteImport.update({
+  id: '/workouts/new',
+  path: '/workouts/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutsSettingsRoute = WorkoutsSettingsRouteImport.update({
+  id: '/workouts/settings',
+  path: '/workouts/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutsEditExerciseIdRoute = WorkoutsEditExerciseIdRouteImport.update({
+  id: '/workouts/edit/$exerciseId',
+  path: '/workouts/edit/$exerciseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutsExerciseExerciseIdRoute =
+  WorkoutsExerciseExerciseIdRouteImport.update({
+    id: '/workouts/exercise/$exerciseId',
+    path: '/workouts/exercise/$exerciseId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const WorkoutsGroupGroupRoute = WorkoutsGroupGroupRouteImport.update({
+  id: '/workouts/group/$group',
+  path: '/workouts/group/$group',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutsHistoryWorkoutIdRoute =
+  WorkoutsHistoryWorkoutIdRouteImport.update({
+    id: '/workouts/history/$workoutId',
+    path: '/workouts/history/$workoutId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/workouts/new': typeof WorkoutsNewRoute
+  '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/workouts/': typeof WorkoutsIndexRoute
+  '/workouts/edit/$exerciseId': typeof WorkoutsEditExerciseIdRoute
+  '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
+  '/workouts/group/$group': typeof WorkoutsGroupGroupRoute
+  '/workouts/history/$workoutId': typeof WorkoutsHistoryWorkoutIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/workouts/new': typeof WorkoutsNewRoute
+  '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/workouts': typeof WorkoutsIndexRoute
+  '/workouts/edit/$exerciseId': typeof WorkoutsEditExerciseIdRoute
+  '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
+  '/workouts/group/$group': typeof WorkoutsGroupGroupRoute
+  '/workouts/history/$workoutId': typeof WorkoutsHistoryWorkoutIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/workouts/new': typeof WorkoutsNewRoute
+  '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/workouts/': typeof WorkoutsIndexRoute
+  '/workouts/edit/$exerciseId': typeof WorkoutsEditExerciseIdRoute
+  '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
+  '/workouts/group/$group': typeof WorkoutsGroupGroupRoute
+  '/workouts/history/$workoutId': typeof WorkoutsHistoryWorkoutIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/settings'
+    | '/workouts/new'
+    | '/workouts/settings'
+    | '/workouts/'
+    | '/workouts/edit/$exerciseId'
+    | '/workouts/exercise/$exerciseId'
+    | '/workouts/group/$group'
+    | '/workouts/history/$workoutId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/settings'
+    | '/workouts/new'
+    | '/workouts/settings'
+    | '/workouts'
+    | '/workouts/edit/$exerciseId'
+    | '/workouts/exercise/$exerciseId'
+    | '/workouts/group/$group'
+    | '/workouts/history/$workoutId'
+  id:
+    | '__root__'
+    | '/'
+    | '/settings'
+    | '/workouts/new'
+    | '/workouts/settings'
+    | '/workouts/'
+    | '/workouts/edit/$exerciseId'
+    | '/workouts/exercise/$exerciseId'
+    | '/workouts/group/$group'
+    | '/workouts/history/$workoutId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SettingsRoute: typeof SettingsRoute
+  WorkoutsNewRoute: typeof WorkoutsNewRoute
+  WorkoutsSettingsRoute: typeof WorkoutsSettingsRoute
+  WorkoutsIndexRoute: typeof WorkoutsIndexRoute
+  WorkoutsEditExerciseIdRoute: typeof WorkoutsEditExerciseIdRoute
+  WorkoutsExerciseExerciseIdRoute: typeof WorkoutsExerciseExerciseIdRoute
+  WorkoutsGroupGroupRoute: typeof WorkoutsGroupGroupRoute
+  WorkoutsHistoryWorkoutIdRoute: typeof WorkoutsHistoryWorkoutIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +158,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workouts/': {
+      id: '/workouts/'
+      path: '/workouts'
+      fullPath: '/workouts/'
+      preLoaderRoute: typeof WorkoutsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workouts/new': {
+      id: '/workouts/new'
+      path: '/workouts/new'
+      fullPath: '/workouts/new'
+      preLoaderRoute: typeof WorkoutsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workouts/settings': {
+      id: '/workouts/settings'
+      path: '/workouts/settings'
+      fullPath: '/workouts/settings'
+      preLoaderRoute: typeof WorkoutsSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workouts/edit/$exerciseId': {
+      id: '/workouts/edit/$exerciseId'
+      path: '/workouts/edit/$exerciseId'
+      fullPath: '/workouts/edit/$exerciseId'
+      preLoaderRoute: typeof WorkoutsEditExerciseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workouts/exercise/$exerciseId': {
+      id: '/workouts/exercise/$exerciseId'
+      path: '/workouts/exercise/$exerciseId'
+      fullPath: '/workouts/exercise/$exerciseId'
+      preLoaderRoute: typeof WorkoutsExerciseExerciseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workouts/group/$group': {
+      id: '/workouts/group/$group'
+      path: '/workouts/group/$group'
+      fullPath: '/workouts/group/$group'
+      preLoaderRoute: typeof WorkoutsGroupGroupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workouts/history/$workoutId': {
+      id: '/workouts/history/$workoutId'
+      path: '/workouts/history/$workoutId'
+      fullPath: '/workouts/history/$workoutId'
+      preLoaderRoute: typeof WorkoutsHistoryWorkoutIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SettingsRoute: SettingsRoute,
+  WorkoutsNewRoute: WorkoutsNewRoute,
+  WorkoutsSettingsRoute: WorkoutsSettingsRoute,
+  WorkoutsIndexRoute: WorkoutsIndexRoute,
+  WorkoutsEditExerciseIdRoute: WorkoutsEditExerciseIdRoute,
+  WorkoutsExerciseExerciseIdRoute: WorkoutsExerciseExerciseIdRoute,
+  WorkoutsGroupGroupRoute: WorkoutsGroupGroupRoute,
+  WorkoutsHistoryWorkoutIdRoute: WorkoutsHistoryWorkoutIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

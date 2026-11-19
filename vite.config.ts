@@ -6,6 +6,12 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  define: {
+    // Busts the persisted query cache on every build (see src/lib/queryClient.ts).
+    "import.meta.env.VITE_BUILD_ID": JSON.stringify(
+      process.env.WORKERS_CI_COMMIT_SHA ?? String(Date.now()),
+    ),
+  },
   plugins: [
     // Must come before react(): generates src/routeTree.gen.ts from src/routes/.
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
@@ -14,14 +20,26 @@ export default defineConfig({
     cloudflare(),
     VitePWA({
       registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png", "icon.svg"],
       manifest: {
-        name: "Health",
-        short_name: "Health",
+        name: "Tracker",
+        short_name: "Tracker",
         display: "standalone",
+        orientation: "portrait",
         start_url: "/",
-        background_color: "#ffffff",
-        theme_color: "#ffffff",
-        icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+        background_color: "#fafaf8",
+        theme_color: "#fafaf8",
+        icons: [
+          { src: "/pwa-64x64.png", sizes: "64x64", type: "image/png" },
+          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          {
+            src: "/maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
       },
       workbox: {
         // Precache the app shell only; never serve API/MCP/auth from the SW cache.
