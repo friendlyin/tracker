@@ -62,3 +62,8 @@ export const EditIcon = (p: P) => (
     <path d="M4 20h4L19 9l-4-4L4 16v4z" />
   </Svg>
 );
+export const CloseIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Svg>
+);

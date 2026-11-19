@@ -4,6 +4,7 @@ import type { NutritionDayStatusDto } from "../../shared/nutrition/types";
 import type { HomeDto } from "../../shared/profile";
 import { kcalLine, proteinLine } from "../features/nutrition/Summary";
 import { useHome } from "../features/profile";
+import { WaterTile } from "../features/water/HomeTile";
 import { fmtSets } from "../lib/format";
 import { cx } from "../ui/cx";
 import { CheckIcon, PersonIcon } from "../ui/icons";
@@ -22,6 +23,8 @@ interface Widget {
   unit?: string;
   progress?: { value: number; max: number };
   live?: boolean;
+  /** Renders its own tile (water has a one-tap button inside). */
+  custom?: boolean;
 }
 
 /** kcal and protein as two equal numbers with their own bars. */
@@ -73,7 +76,7 @@ function widgets(home: HomeDto | undefined): Widget[] {
       body: n ? <NutritionTile s={n} /> : undefined,
       value: n ? undefined : "–",
     },
-    { key: "water", label: "Water" },
+    { key: "water", label: "Water", custom: true },
     { key: "focus", label: "Focus" },
   ];
 }
@@ -107,29 +110,31 @@ function Label({ w }: { w: Widget }) {
 }
 
 /** 2-column grid of square tiles. */
+const tileClass = "flex aspect-square flex-col justify-between rounded-md bg-surface p-4";
+
 function Tiles({ items }: { items: Widget[] }) {
   return (
     <div className="grid grid-cols-2 gap-2">
-      {items.map((w) => (
-        <WidgetShell
-          key={w.key}
-          w={w}
-          className="flex aspect-square flex-col justify-between rounded-md bg-surface p-4"
-        >
-          <Label w={w} />
-          {w.body ? (
-            w.body
-          ) : w.value !== undefined ? (
-            <div>
-              <div className="num text-[40px] leading-none font-semibold">{w.value}</div>
-              <div className="mt-1 text-[13px] text-ink-2">{w.unit}</div>
-              {w.progress && <ProgressBar className="mt-3" {...w.progress} />}
-            </div>
-          ) : (
-            <div className="text-[13px]">soon</div>
-          )}
-        </WidgetShell>
-      ))}
+      {items.map((w) =>
+        w.custom ? (
+          <WaterTile key={w.key} className={tileClass} />
+        ) : (
+          <WidgetShell key={w.key} w={w} className={tileClass}>
+            <Label w={w} />
+            {w.body ? (
+              w.body
+            ) : w.value !== undefined ? (
+              <div>
+                <div className="num text-[40px] leading-none font-semibold">{w.value}</div>
+                <div className="mt-1 text-[13px] text-ink-2">{w.unit}</div>
+                {w.progress && <ProgressBar className="mt-3" {...w.progress} />}
+              </div>
+            ) : (
+              <div className="text-[13px]">soon</div>
+            )}
+          </WidgetShell>
+        ),
+      )}
     </div>
   );
 }

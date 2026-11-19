@@ -13,6 +13,10 @@ export function useUpdateMe() {
   return useMutation({
     mutationFn: (patch: Partial<Pick<MeDto, "name" | "wakeTime" | "sleepTime">>) =>
       api<MeDto>("/me", { method: "PATCH", body: patch }),
-    onSuccess: (me) => qc.setQueryData(["me"], me),
+    onSuccess: (me) => {
+      qc.setQueryData(["me"], me);
+      // Wake and sleep times drive the water simulation.
+      qc.invalidateQueries({ queryKey: ["water"] });
+    },
   });
 }
