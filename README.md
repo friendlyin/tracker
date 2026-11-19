@@ -8,7 +8,8 @@ Built for one person or a household: each person has their own account and sees 
 
 > **Status: early development.** Features are built in iterations (see [the plan](docs/requirements.md)).
 > Usable so far: workouts, nutrition, water and focus energy (✅), deployed on your own Cloudflare
-> account with email-code login, logging that works offline, and Claude (claude.ai, the Claude apps,
+> account with email-code login, logging that works offline, stats with an overview of everything,
+> and Claude (claude.ai, the Claude apps,
 > Claude Code) connected through MCP.
 
 ## Features (planned)
@@ -20,7 +21,7 @@ Built for one person or a household: each person has their own account and sees 
 | Claude (MCP) | Claude reads and writes your data: log meals, adjust targets, analyse trends. | 3 (local), 6 (claude.ai) |
 | Water ✅ | Water "debt" builds up through the day (slower at night) and is paid off by drinking; one tap on the home screen logs a glass. The app warns when you've been behind for too long. | 4 |
 | Focus energy ✅ | Focus energy drains with work and information intake, refills with deliberate unfocus and sleep. The app prompts you to unfocus before you run out. | 5 |
-| Stats | One engine for all charts: any period, per feature or everything on one screen. | 7 |
+| Stats ✅ | One engine for all charts: any period, per feature or everything on one screen; strength progress per exercise and muscle group. | 7 |
 | Offline logging ✅ | Log sets in a gym with no signal; the app syncs later. | 8 |
 | WHOOP | Sleep, recovery and workouts from your WHOOP. | 9 |
 | Habits, mood | Habits such as morning sunlight, plus mood check-ins. | 10–11 |

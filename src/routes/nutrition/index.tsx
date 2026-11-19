@@ -8,7 +8,7 @@ import { todayLocal, useNutritionDay, useSetDayType } from "../../features/nutri
 import { Summary } from "../../features/nutrition/Summary";
 import { fmtDay, fmtInt, fmtTime } from "../../lib/format";
 import { cx } from "../../ui/cx";
-import { ChevronIcon, SlidersIcon } from "../../ui/icons";
+import { ChartIcon, ChevronIcon, SlidersIcon } from "../../ui/icons";
 import { IconLink, Screen } from "../../ui/Screen";
 import { Segmented } from "../../ui/Segmented";
 
@@ -136,9 +136,14 @@ function NutritionScreen() {
       back="/"
       title={<span className={cx(date !== today && "text-ink-2")}>{fmtDay(date)}</span>}
       right={
-        <IconLink to="/nutrition/settings" label="Nutrition targets" className="-mr-1">
-          <SlidersIcon />
-        </IconLink>
+        <>
+          <IconLink to="/nutrition/stats" label="Nutrition stats">
+            <ChartIcon />
+          </IconLink>
+          <IconLink to="/nutrition/settings" label="Nutrition targets" className="-mr-1">
+            <SlidersIcon />
+          </IconLink>
+        </>
       }
       footer={<DayNav date={date} today={today} />}
     >

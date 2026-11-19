@@ -16,7 +16,7 @@ import { Elapsed, KIND_LABEL, Summary, Totals } from "../../features/focus/Summa
 import { fmtDuration, fmtTime } from "../../lib/format";
 import { Button } from "../../ui/Button";
 import { cx } from "../../ui/cx";
-import { PlayIcon, PlusIcon, SlidersIcon, StopIcon } from "../../ui/icons";
+import { ChartIcon, PlayIcon, PlusIcon, SlidersIcon, StopIcon } from "../../ui/icons";
 import { IconLink, Screen } from "../../ui/Screen";
 import { Segmented } from "../../ui/Segmented";
 import { Sheet } from "../../ui/Sheet";
@@ -377,9 +377,14 @@ function FocusScreen() {
       back="/"
       title="Focus"
       right={
-        <IconLink to="/focus/settings" label="Focus settings" className="-mr-1">
-          <SlidersIcon />
-        </IconLink>
+        <>
+          <IconLink to="/focus/stats" label="Focus stats">
+            <ChartIcon />
+          </IconLink>
+          <IconLink to="/focus/settings" label="Focus settings" className="-mr-1">
+            <SlidersIcon />
+          </IconLink>
+        </>
       }
       footer={
         st && <Actions st={st} onStart={() => setStarting(true)} onAdd={() => setAdd(true)} />

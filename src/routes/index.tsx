@@ -2,13 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ComponentType, ReactNode } from "react";
 import type { NutritionDayStatusDto } from "../../shared/nutrition/types";
 import type { HomeDto } from "../../shared/profile";
+import { useVariant } from "../dev/variants";
 import { FocusTile } from "../features/focus/HomeTile";
 import { kcalLine, proteinLine } from "../features/nutrition/Summary";
 import { useHome } from "../features/profile";
 import { WaterTile } from "../features/water/HomeTile";
 import { fmtSets } from "../lib/format";
 import { cx } from "../ui/cx";
-import { CheckIcon, PersonIcon } from "../ui/icons";
+import { ChartIcon, CheckIcon, PersonIcon } from "../ui/icons";
 import { ProgressBar } from "../ui/ProgressBar";
 import { IconLink } from "../ui/Screen";
 import { SyncState } from "../ui/SyncState";
@@ -149,18 +150,33 @@ const todayFmt = new Intl.DateTimeFormat(undefined, {
 
 function Home() {
   const home = useHome();
+  const entry = useVariant("home.overview", { icon: "icon", tile: "tile" });
   return (
     <div className="min-h-dvh px-4">
       <header className="pt-safe relative flex h-[calc(56px+max(env(safe-area-inset-top),12px))] items-center justify-between">
         <span className="text-[15px] text-ink-2">{todayFmt.format(new Date())}</span>
         <div className="-mr-2 flex items-center">
           <SyncState />
+          {entry === "icon" && (
+            <IconLink to="/stats" label="Overview">
+              <ChartIcon />
+            </IconLink>
+          )}
           <IconLink to="/settings" label="Profile and settings">
             <PersonIcon />
           </IconLink>
         </div>
       </header>
       <Tiles items={widgets(home.data)} />
+      {entry === "tile" && (
+        <Link
+          to="/stats"
+          className="mt-2 flex h-14 items-center justify-between rounded-md bg-surface px-4 active:opacity-70"
+        >
+          <span className="text-[15px]">Overview</span>
+          <ChartIcon className="text-ink-2" />
+        </Link>
+      )}
     </div>
   );
 }

@@ -11,12 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as StatsRouteImport } from './routes/stats'
+import { Route as DayDateRouteImport } from './routes/day.$date'
 import { Route as FocusIndexRouteImport } from './routes/focus/index'
 import { Route as FocusSettingsRouteImport } from './routes/focus/settings'
+import { Route as FocusStatsRouteImport } from './routes/focus/stats'
 import { Route as NutritionIndexRouteImport } from './routes/nutrition/index'
 import { Route as NutritionSettingsRouteImport } from './routes/nutrition/settings'
+import { Route as NutritionStatsRouteImport } from './routes/nutrition/stats'
 import { Route as WaterIndexRouteImport } from './routes/water/index'
 import { Route as WaterSettingsRouteImport } from './routes/water/settings'
+import { Route as WaterStatsRouteImport } from './routes/water/stats'
 import { Route as WorkoutsIndexRouteImport } from './routes/workouts/index'
 import { Route as WorkoutsNewRouteImport } from './routes/workouts/new'
 import { Route as WorkoutsSettingsRouteImport } from './routes/workouts/settings'
@@ -37,6 +42,16 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DayDateRoute = DayDateRouteImport.update({
+  id: '/day/$date',
+  path: '/day/$date',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FocusIndexRoute = FocusIndexRouteImport.update({
   id: '/focus/',
   path: '/focus/',
@@ -45,6 +60,11 @@ const FocusIndexRoute = FocusIndexRouteImport.update({
 const FocusSettingsRoute = FocusSettingsRouteImport.update({
   id: '/focus/settings',
   path: '/focus/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FocusStatsRoute = FocusStatsRouteImport.update({
+  id: '/focus/stats',
+  path: '/focus/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NutritionIndexRoute = NutritionIndexRouteImport.update({
@@ -57,6 +77,11 @@ const NutritionSettingsRoute = NutritionSettingsRouteImport.update({
   path: '/nutrition/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NutritionStatsRoute = NutritionStatsRouteImport.update({
+  id: '/nutrition/stats',
+  path: '/nutrition/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WaterIndexRoute = WaterIndexRouteImport.update({
   id: '/water/',
   path: '/water/',
@@ -65,6 +90,11 @@ const WaterIndexRoute = WaterIndexRouteImport.update({
 const WaterSettingsRoute = WaterSettingsRouteImport.update({
   id: '/water/settings',
   path: '/water/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WaterStatsRoute = WaterStatsRouteImport.update({
+  id: '/water/stats',
+  path: '/water/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkoutsIndexRoute = WorkoutsIndexRouteImport.update({
@@ -119,9 +149,14 @@ const WorkoutsProgressExerciseIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
+  '/day/$date': typeof DayDateRoute
   '/focus/settings': typeof FocusSettingsRoute
+  '/focus/stats': typeof FocusStatsRoute
   '/nutrition/settings': typeof NutritionSettingsRoute
+  '/nutrition/stats': typeof NutritionStatsRoute
   '/water/settings': typeof WaterSettingsRoute
+  '/water/stats': typeof WaterStatsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
   '/workouts/stats': typeof WorkoutsStatsRoute
@@ -138,9 +173,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
+  '/day/$date': typeof DayDateRoute
   '/focus/settings': typeof FocusSettingsRoute
+  '/focus/stats': typeof FocusStatsRoute
   '/nutrition/settings': typeof NutritionSettingsRoute
+  '/nutrition/stats': typeof NutritionStatsRoute
   '/water/settings': typeof WaterSettingsRoute
+  '/water/stats': typeof WaterStatsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
   '/workouts/stats': typeof WorkoutsStatsRoute
@@ -158,9 +198,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
+  '/day/$date': typeof DayDateRoute
   '/focus/settings': typeof FocusSettingsRoute
+  '/focus/stats': typeof FocusStatsRoute
   '/nutrition/settings': typeof NutritionSettingsRoute
+  '/nutrition/stats': typeof NutritionStatsRoute
   '/water/settings': typeof WaterSettingsRoute
+  '/water/stats': typeof WaterStatsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
   '/workouts/stats': typeof WorkoutsStatsRoute
@@ -179,9 +224,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/settings'
+    | '/stats'
+    | '/day/$date'
     | '/focus/settings'
+    | '/focus/stats'
     | '/nutrition/settings'
+    | '/nutrition/stats'
     | '/water/settings'
+    | '/water/stats'
     | '/workouts/new'
     | '/workouts/settings'
     | '/workouts/stats'
@@ -198,9 +248,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/settings'
+    | '/stats'
+    | '/day/$date'
     | '/focus/settings'
+    | '/focus/stats'
     | '/nutrition/settings'
+    | '/nutrition/stats'
     | '/water/settings'
+    | '/water/stats'
     | '/workouts/new'
     | '/workouts/settings'
     | '/workouts/stats'
@@ -217,9 +272,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/settings'
+    | '/stats'
+    | '/day/$date'
     | '/focus/settings'
+    | '/focus/stats'
     | '/nutrition/settings'
+    | '/nutrition/stats'
     | '/water/settings'
+    | '/water/stats'
     | '/workouts/new'
     | '/workouts/settings'
     | '/workouts/stats'
@@ -237,9 +297,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SettingsRoute: typeof SettingsRoute
+  StatsRoute: typeof StatsRoute
+  DayDateRoute: typeof DayDateRoute
   FocusSettingsRoute: typeof FocusSettingsRoute
+  FocusStatsRoute: typeof FocusStatsRoute
   NutritionSettingsRoute: typeof NutritionSettingsRoute
+  NutritionStatsRoute: typeof NutritionStatsRoute
   WaterSettingsRoute: typeof WaterSettingsRoute
+  WaterStatsRoute: typeof WaterStatsRoute
   WorkoutsNewRoute: typeof WorkoutsNewRoute
   WorkoutsSettingsRoute: typeof WorkoutsSettingsRoute
   WorkoutsStatsRoute: typeof WorkoutsStatsRoute
@@ -270,6 +335,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/day/$date': {
+      id: '/day/$date'
+      path: '/day/$date'
+      fullPath: '/day/$date'
+      preLoaderRoute: typeof DayDateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/focus/': {
       id: '/focus/'
       path: '/focus'
@@ -282,6 +361,13 @@ declare module '@tanstack/react-router' {
       path: '/focus/settings'
       fullPath: '/focus/settings'
       preLoaderRoute: typeof FocusSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/focus/stats': {
+      id: '/focus/stats'
+      path: '/focus/stats'
+      fullPath: '/focus/stats'
+      preLoaderRoute: typeof FocusStatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/nutrition/': {
@@ -298,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NutritionSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/nutrition/stats': {
+      id: '/nutrition/stats'
+      path: '/nutrition/stats'
+      fullPath: '/nutrition/stats'
+      preLoaderRoute: typeof NutritionStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/water/': {
       id: '/water/'
       path: '/water'
@@ -310,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/water/settings'
       fullPath: '/water/settings'
       preLoaderRoute: typeof WaterSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/water/stats': {
+      id: '/water/stats'
+      path: '/water/stats'
+      fullPath: '/water/stats'
+      preLoaderRoute: typeof WaterStatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workouts/': {
@@ -381,9 +481,14 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SettingsRoute: SettingsRoute,
+  StatsRoute: StatsRoute,
+  DayDateRoute: DayDateRoute,
   FocusSettingsRoute: FocusSettingsRoute,
+  FocusStatsRoute: FocusStatsRoute,
   NutritionSettingsRoute: NutritionSettingsRoute,
+  NutritionStatsRoute: NutritionStatsRoute,
   WaterSettingsRoute: WaterSettingsRoute,
+  WaterStatsRoute: WaterStatsRoute,
   WorkoutsNewRoute: WorkoutsNewRoute,
   WorkoutsSettingsRoute: WorkoutsSettingsRoute,
   WorkoutsStatsRoute: WorkoutsStatsRoute,

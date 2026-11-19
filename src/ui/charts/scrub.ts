@@ -37,10 +37,11 @@ export function useScrub(pick: (fraction: number) => number | null) {
   };
 }
 
-/** Nice upper bound for an axis: 1, 2, 2.5 or 5 times a power of ten. */
+const STEPS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+
+/** Nice upper bound for an axis: a round step times a power of ten, at least `v`. */
 export function niceMax(v: number) {
   if (v <= 0) return 1;
   const p = 10 ** Math.floor(Math.log10(v));
-  const n = v / p;
-  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  return (STEPS.find((s) => s * p >= v) ?? 10) * p;
 }

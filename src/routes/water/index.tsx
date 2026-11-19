@@ -5,7 +5,7 @@ import { useDeleteWater, useDrink, useWaterDay, useWaterState } from "../../feat
 import { Summary } from "../../features/water/Summary";
 import { fmtInt, fmtTime } from "../../lib/format";
 import { Button } from "../../ui/Button";
-import { CloseIcon, SlidersIcon } from "../../ui/icons";
+import { ChartIcon, CloseIcon, SlidersIcon } from "../../ui/icons";
 import { IconLink, Screen } from "../../ui/Screen";
 import { Sheet } from "../../ui/Sheet";
 import { Stepper } from "../../ui/Stepper";
@@ -137,9 +137,14 @@ function WaterScreen() {
       back="/"
       title="Water"
       right={
-        <IconLink to="/water/settings" label="Water settings" className="-mr-1">
-          <SlidersIcon />
-        </IconLink>
+        <>
+          <IconLink to="/water/stats" label="Water stats">
+            <ChartIcon />
+          </IconLink>
+          <IconLink to="/water/settings" label="Water settings" className="-mr-1">
+            <SlidersIcon />
+          </IconLink>
+        </>
       }
       footer={
         data && (

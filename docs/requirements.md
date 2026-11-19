@@ -19,7 +19,7 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 4 | Water + level engine | ✅ |
 | 5 | Focus energy | ✅ |
 | 6 | Deploy to Cloudflare, login, connect Claude | ✅ |
-| 7 | Stats engine and Overview | in progress |
+| 7 | Stats engine and Overview | ✅ |
 | 8 | Offline-proof logging | ✅ |
 | 9 | WHOOP | |
 | 10 | Habits | |
@@ -547,7 +547,7 @@ Everything from iterations 1–5 goes live on your own Cloudflare account.
   its published identity (client ID metadata document).
 - Install the PWA on the phone. ✅ Production starts fresh; local test data stays local.
 
-## Iteration 7: Stats engine and Overview
+## Iteration 7: Stats engine and Overview ✅
 
 The full metrics UI on top of the rollups that features have been writing since iteration 2:
 - one period selector
@@ -583,6 +583,23 @@ MCP: `list_metrics`, `get_metrics` for cross-feature insights.
   group's trend is the mean of its primary exercises' trends.
 - Variants to pick on the phone: `stats.period` (selector in the footer or under the title),
   `stats.progress` (sparkline rows or change bars).
+
+**Notes (7b: other features, Overview, day):**
+- Each feature screen has a chart icon next to its settings, opening its stats:
+  - nutrition: kcal and protein as daily averages over logged days against the targets that applied,
+    days on target (kcal is a budget: at or under), fat and carbs averages; a day opens that day's
+    nutrition;
+  - water: intake against the target (daily average over every day, days at target) and time at the
+    cap;
+  - focus: deep focus and sessions, the lowest energy of each day against the thresholds and time
+    below each, moderate focus by tag and unfocus, sleep quality as a calendar.
+- Overview (from home): sets, kcal, protein, water, deep focus and sleep on one time axis. Sliding
+  across selects a day, week or month for all of them at once; Open shows that day, or zooms into that
+  week or month.
+- Day detail: one day across features from the rollups, with links to its workouts and nutrition,
+  paging day by day.
+- Variants to pick on the phone: `home.overview` (header icon or a tile under the grid) and
+  `overview.layout` (strips, matrix or cards).
 
 | MCP tool | Service function |
 |---|---|
