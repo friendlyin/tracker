@@ -1,12 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { SLEEP_LABEL, sleepQualities } from "../../../shared/focus/settings";
 import type { FocusStateDto } from "../../../shared/focus/types";
-import { useVariant } from "../../dev/variants";
 import { cx } from "../../ui/cx";
 import { PlayIcon, StopIcon } from "../../ui/icons";
 import { ProgressBar } from "../../ui/ProgressBar";
 import { useFocusLog, useFocusState, useSetSleep, useStopFocus } from "./api";
-import { Elapsed, energyTone, KIND_LABEL, nextLine } from "./Summary";
+import { Elapsed, energyTone, KIND_LABEL } from "./Summary";
 
 // Home tile: energy and state, and one tap to start deep focus or stop the running timer. Until the
 // day's sleep is set, three sleep buttons take that place. Buttons sit above the tile's link (a
@@ -34,7 +33,8 @@ function Running({ st }: { st: FocusStateDto }) {
   );
 }
 
-function BarBody({ st }: P) {
+/** Energy, the running timer and a 0–100 bar. */
+function Body({ st }: P) {
   return (
     <div>
       <EnergyNumber st={st} />
@@ -42,18 +42,6 @@ function BarBody({ st }: P) {
         <Running st={st} />
       </div>
       <ProgressBar className="mt-2" value={st.energy} max={100} />
-    </div>
-  );
-}
-
-function NextBody({ st }: P) {
-  return (
-    <div>
-      <EnergyNumber st={st} />
-      <div className="mt-1 space-y-0.5">
-        <Running st={st} />
-        <div className="num h-4 text-[12px] opacity-70">{nextLine(st)}</div>
-      </div>
     </div>
   );
 }
@@ -83,7 +71,6 @@ export function FocusTile({ className }: { className: string }) {
   const st = useFocusState();
   const log = useFocusLog();
   const { stop } = useStopFocus();
-  const Body = useVariant("home.focus", { bar: BarBody, next: NextBody });
   const urgent = st?.state === "urgent";
   const recommend = st?.state === "recommend";
 
@@ -110,10 +97,7 @@ export function FocusTile({ className }: { className: string }) {
             type="button"
             aria-label={st.running ? "Stop timer" : "Start deep focus"}
             onClick={() => (st.running ? stop() : log.start("deep"))}
-            className={cx(
-              "pointer-events-auto relative -mt-2 -mr-2 grid size-11 place-items-center rounded-md active:opacity-60",
-              "bg-paper text-ink",
-            )}
+            className="pointer-events-auto relative -mt-2 -mr-2 grid size-11 place-items-center rounded-md bg-paper text-ink active:opacity-60"
           >
             {st.running ? <StopIcon className="size-5" /> : <PlayIcon className="size-5" />}
           </button>

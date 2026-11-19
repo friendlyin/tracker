@@ -17,7 +17,7 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 2 | Workouts | ✅ |
 | 3 | Nutrition + tracking engine + local MCP server | ✅ |
 | 4 | Water + level engine | ✅ |
-| 5 | Focus energy | design pick |
+| 5 | Focus energy | ✅ |
 | 6 | Deploy to Cloudflare, login, connect Claude | next |
 | 7 | Stats engine and Overview | |
 | 8 | Offline-proof logging | |
@@ -391,7 +391,7 @@ logged in the app (and by Claude).
   - Rejected: a water screen led by what is due (with or without a curve of the day), and a home tile
     led by the total.
 
-## Iteration 5: Focus energy (design pick pending)
+## Iteration 5: Focus energy ✅
 
 The problem: knowledge work often means long stretches of focus and information intake without
 deliberate unfocus, and the need for a break is noticed only when already exhausted. The app models a **focus energy** level and prompts for unfocus *before* it runs
@@ -481,7 +481,7 @@ Web Push reminders (for focus and water) are in the backlog.
   - Suggest colours the number, recommend outlines the tile, urgent fills it with the warning colour.
 - **Focus screen:**
   - the sleep picker, which stays changeable;
-  - energy with the forecast, and today's curve with the threshold lines;
+  - energy with the forecast, and a 0–100 bar with ticks at the thresholds;
   - today's minutes per tier;
   - the day's sessions; tap one to change its start, length or tag, or delete it;
   - in the footer: the running timer with Stop, start buttons for deep, moderate (pick a tag) and
@@ -505,10 +505,13 @@ Web Push reminders (for focus and water) are in the backlog.
 - Running timers are always loaded, whatever day they started on.
 - The closed-day stats are finalised through the shared `levels.ts`. The last finalised date is in
   `user_setting` key `focus.finalized`.
-- **Design variants** (to pick on the phone):
-  - `focus.summary`: number with the curve below, a curve-led layout with the number top right, or
-    number with a 0–100 bar and threshold ticks;
-  - `home.focus`: energy with a bar, or energy with the forecast line.
+- Design variants chosen (2026-11-19):
+  - Focus screen: energy with the forecast and a 0–100 bar with ticks at the thresholds.
+  - Home tile: energy, the running timer and a 0–100 bar.
+  - Rejected: a curve of the day under the number, a curve-led layout, and a tile with the forecast
+    line. The curve component was removed; charts come with the stats engine (iteration 7).
+
+**Status:** done (2026-11-19).
 
 ## Iteration 6: Deploy to Cloudflare, login, connect Claude
 
@@ -622,4 +625,5 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Level engine: pure simulation run on every read, in the Worker and the PWA; no tables. Session-dependent drift waits for focus energy. |
 | 2026-11-19 | Focus: one timer at a time (starting one stops the running one); the home tile starts or stops deep focus; until sleep is set, "ok" is assumed. |
 | 2026-11-19 | Level engine extended with spans and affine rates (response curves); a daily ceiling is the per-day model's max. Closed-day rollups are finalised by one shared mechanism for water and focus. |
+| 2026-11-19 | Design: focus screen with energy, forecast and a threshold bar (no curve); home focus tile with energy and a bar. |
 | 2026-11-19 | Focus energy restarts each day at wake; no carry-over. Rate precedence: unfocus, deep, moderate, baseline. Setting sleep before the wake time starts the day early. |

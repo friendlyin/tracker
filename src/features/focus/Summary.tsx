@@ -1,19 +1,15 @@
 import type { FocusKind } from "../../../shared/focus/schemas";
 import type { FocusInputsDto, FocusStateDto } from "../../../shared/focus/types";
 import type { LevelState } from "../../../shared/level/engine";
-import { sleepInstant } from "../../../shared/schedule";
-import { useVariant } from "../../dev/variants";
 import { fmtDuration, fmtElapsed } from "../../lib/format";
 import { useNow } from "../../lib/useNow";
 import { cx } from "../../ui/cx";
-import { LevelCurve } from "../../ui/LevelCurve";
 import { ProgressBar } from "../../ui/ProgressBar";
 
-// Focus energy now, where it is heading, and today's curve. Suggest colours the number; recommend
-// also outlines the home tile; urgent fills it.
+// Focus energy now and where it is heading. Suggest colours the number; recommend also outlines the
+// home tile; urgent fills it.
 
 const MIN = 60_000;
-const HOUR = 60 * MIN;
 
 export const KIND_LABEL: Record<FocusKind, string> = {
   deep: "Deep",
@@ -24,7 +20,7 @@ export const KIND_LABEL: Record<FocusKind, string> = {
 export const energyTone = (state: LevelState) => (state === "ok" ? undefined : "text-warn");
 
 /** "↓ 40 in 1 h 20" (or "↑ 60 in 12 min" while resting). */
-export function nextLine(st: FocusStateDto, now = Date.now()): string | null {
+function nextLine(st: FocusStateDto, now = Date.now()): string | null {
   if (!st.next) return null;
   const rising = st.running?.kind === "unfocus";
   return `${rising ? "↑" : "↓"} ${st.next.level} in ${fmtDuration(st.next.reachedAt - now)}`;
@@ -34,27 +30,6 @@ export function nextLine(st: FocusStateDto, now = Date.now()): string | null {
 export function Elapsed({ since, className }: { since: number; className?: string }) {
   const now = useNow(1000);
   return <span className={cx("num", className)}>{fmtElapsed(now - since)}</span>;
-}
-
-/** The day's window on the curve: from its start to the sleep time (or now, if later). */
-function dayWindow(d: FocusInputsDto, st: FocusStateDto) {
-  const sleep = sleepInstant(st.date, d.schedule, d.tz);
-  const to = Number.isFinite(sleep) ? sleep : st.dayStartedAt + 24 * HOUR;
-  return { from: st.dayStartedAt, to: Math.max(to, Date.now()) };
-}
-
-function Curve({ d, st, className }: { d: FocusInputsDto; st: FocusStateDto; className?: string }) {
-  const t = d.settings.thresholds;
-  return (
-    <LevelCurve
-      points={st.points}
-      {...dayWindow(d, st)}
-      min={0}
-      max={100}
-      guides={[t.suggest, t.recommend, t.urgent]}
-      className={className}
-    />
-  );
 }
 
 function Energy({ st, size = 52 }: { st: FocusStateDto; size?: number }) {
@@ -78,29 +53,8 @@ function Next({ st }: { st: FocusStateDto }) {
 
 type P = { d: FocusInputsDto; st: FocusStateDto };
 
-function NumberCurve({ d, st }: P) {
-  return (
-    <div>
-      <Energy st={st} />
-      <Next st={st} />
-      <Curve d={d} st={st} className="mt-4 h-20" />
-    </div>
-  );
-}
-
-function CurveLed({ d, st }: P) {
-  return (
-    <div className="relative">
-      <Curve d={d} st={st} className="h-40" />
-      <div className="absolute top-0 right-0 flex flex-col items-end">
-        <Energy st={st} size={40} />
-        <Next st={st} />
-      </div>
-    </div>
-  );
-}
-
-function NumberBar({ d, st }: P) {
+/** Energy, the forecast, and a 0–100 bar with ticks at the thresholds. */
+export function Summary({ d, st }: P) {
   const t = d.settings.thresholds;
   return (
     <div>
@@ -119,15 +73,6 @@ function NumberBar({ d, st }: P) {
       </div>
     </div>
   );
-}
-
-export function Summary(props: P) {
-  const V = useVariant("focus.summary", {
-    "number + curve": NumberCurve,
-    "curve-led": CurveLed,
-    "number + bar": NumberBar,
-  });
-  return <V {...props} />;
 }
 
 /** Today's minutes per tier. */
