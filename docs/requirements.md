@@ -16,8 +16,8 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 1 | Platform base (local) | ✅ |
 | 2 | Workouts | ✅ |
 | 3 | Nutrition + tracking engine + local MCP server | ✅ |
-| 4 | Water + level engine | built, design variants to pick |
-| 5 | Focus energy | |
+| 4 | Water + level engine | ✅ |
+| 5 | Focus energy | next |
 | 6 | Deploy to Cloudflare, login, connect Claude | |
 | 7 | Stats engine and Overview | |
 | 8 | Offline-proof logging | |
@@ -306,7 +306,7 @@ day's budget and the meals.
   large numbers), home tile **split** (kcal and protein as two equal numbers with bars). Rejected:
   summary bars / compact rows, kcal-led home tile.
 
-## Iteration 4: Water (+ level engine)
+## Iteration 4: Water (+ level engine) ✅
 
 Water "debt" that builds up through the day and is paid off by drinking. Unlike meals, water is
 logged in the app (and by Claude).
@@ -357,8 +357,7 @@ logged in the app (and by Claude).
   - `get_water_state`: pending, credit, `buildUpAt`, state, `cappedAt`, total vs target.
   - `get_water_settings` and `set_water_settings`.
 
-**Status:** built (2026-11-19); design variants to be picked on the phone: `water.summary` (pending /
-total / curve) and `home.water` (pending / total).
+**Status:** done (2026-11-19).
 
 **Implementation notes**
 - Drinks are entries of the `water` tracker (ml in `entry.value`, no data). No new table.
@@ -373,6 +372,11 @@ total / curve) and `home.water` (pending / total).
   - A write to an already finalised day recomputes that day and the next one.
   - The last finalised date is kept in `user_setting` key `water.finalized`.
 - The app's quick amount and the MCP tools go through the same `logWater` service.
+- Design variants chosen (2026-11-19):
+  - Water screen: today's total is the big number, with what is due below it.
+  - Home tile: led by what is due, with today's total below.
+  - Rejected: a water screen led by what is due (with or without a curve of the day), and a home tile
+    led by the total.
 
 ## Iteration 5: Focus energy
 
@@ -542,4 +546,5 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Design: nutrition summary with big side-by-side numbers; home nutrition tile with kcal and protein as two equal numbers. |
 | 2026-11-19 | Water is logged in the app (home tile one-tap button, two configurable quick amounts plus a custom amount) and by Claude. |
 | 2026-11-19 | Water is one level from −credit cap to +cap and carries over between days. Urgency counts awake time since the last wake. Time at the cap is a metric written for closed days. |
+| 2026-11-19 | Design: water screen led by today's total; home water tile led by what is due now. |
 | 2026-11-19 | Level engine: pure simulation run on every read, in the Worker and the PWA; no tables. Session-dependent drift waits for focus energy. |

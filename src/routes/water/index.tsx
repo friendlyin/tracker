@@ -155,7 +155,7 @@ function WaterScreen() {
       {s && data && (
         <>
           <div className="mt-2">
-            <Summary s={s} cap={data.settings.capMl} credit={data.settings.creditCapMl} />
+            <Summary s={s} />
           </div>
           <Entries entries={today ?? []} />
         </>

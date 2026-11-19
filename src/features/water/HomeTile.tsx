@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import type { WaterStateDto } from "../../../shared/water/types";
-import { useVariant } from "../../dev/variants";
 import { fmtInt } from "../../lib/format";
 import { cx } from "../../ui/cx";
 import { ProgressBar } from "../../ui/ProgressBar";
@@ -10,7 +9,8 @@ import { Credit } from "./Summary";
 // Home tile with its own one-tap button: a glass from home is one tap. The tile opens /water; the
 // button sits above the link (a button inside a link is invalid HTML).
 
-function PendingLed({ s }: { s: WaterStateDto }) {
+/** What is due now as the big number, today's total below it. */
+function Body({ s }: { s: WaterStateDto }) {
   return (
     <div>
       <div className="flex items-baseline gap-1.5">
@@ -28,26 +28,10 @@ function PendingLed({ s }: { s: WaterStateDto }) {
   );
 }
 
-function TotalLed({ s }: { s: WaterStateDto }) {
-  return (
-    <div>
-      <div className="flex items-baseline gap-1.5">
-        <span className="num text-[40px] leading-none font-semibold">{fmtInt(s.totalMl)}</span>
-        <span className="text-[12px]">ml</span>
-      </div>
-      <ProgressBar className="mt-3" value={s.totalMl} max={s.targetMl} />
-      <div className="num mt-2 text-[12px]">
-        {fmtInt(s.pendingMl)} ml due <Credit s={s} />
-      </div>
-    </div>
-  );
-}
-
 export function WaterTile({ className }: { className: string }) {
   const s = useWaterState();
   const day = useWaterDay();
   const drink = useDrink();
-  const Body = useVariant("home.water", { pending: PendingLed, total: TotalLed });
   const quick = day.data?.settings.quickMl[0] ?? 250;
   const urgent = s?.state === "urgent";
 
