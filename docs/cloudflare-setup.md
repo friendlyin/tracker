@@ -101,8 +101,11 @@ See [architecture.md §3](architecture.md#3-authentication) for why. The Zero Tr
    - Don't use the Worker's own **Access** tab (**Protect this Worker behind Access**): its dialog
      only offers an account-members policy or an email-domain policy, neither of which fits. The tab
      may keep saying "not protected"; the address is protected anyway.
-5. **Values the Worker needs:** open the application → copy the **Application Audience (AUD) tag**.
-   The team domain is `https://<team>.cloudflareaccess.com`. Store both as secrets (A7).
+5. **Values the Worker needs:** Zero Trust → **Access controls → Applications** → `tracker` →
+   **Edit** → **Additional settings** → **Application Audience (AUD) Tag** → copy the value (a long
+   hex string). The text there about a "token validation script" refers to the Worker's own check
+   (`worker/auth.ts`); nothing else to set up. The team domain is
+   `https://<team>.cloudflareaccess.com`. Store both as secrets (A7).
 6. **Bypass for Claude** (needed for Part B; test it now): add a second Access application for
    the same host with the paths `/mcp`, `/authorize`, `/token`, `/register`, `/callback` and
    `/.well-known/`. Give it one policy with Action **Bypass**, Include **Everyone**. The Worker protects
