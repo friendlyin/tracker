@@ -211,7 +211,9 @@ The three shared engines (tracking, level, metrics) are described in
   `shared/tracking/trackers.ts`; a `tracker` table is added only with user-defined trackers. Tags are
   added when a tracker needs them. Meals, water, focus sessions, unfocus, sleep quality, habits and mood
   are all entries.
-- **Level engine**: no tables. It is a pure simulation over entries + config in `shared/`.
+- **Level engine**: no tables. It is a pure simulation over entries + config in `shared/level/`, run
+  on every read. The API returns the simulation's inputs, so the PWA runs the same simulation live
+  (every minute and after optimistic writes).
 - **Metrics engine**: `metric_daily` (user, local_date, metric, dimension, value), updated on every
   write and indexed by (user, metric, local_date).
 - **Workouts** (domain tables, more structure than entries):
@@ -230,6 +232,10 @@ The three shared engines (tracking, level, metrics) are described in
   Targets per day type live in `user_setting` key `nutrition`. `metric_daily` holds `nutrition.kcal`,
   `nutrition.protein_g`, `nutrition.fat_g`, `nutrition.carbs_g` and the targets that applied
   (`nutrition.kcal_target`, `nutrition.protein_target`).
+- **Water**: drinks are `water` entries (ml in `value`). Settings in `user_setting` key `water`; the
+  day schedule comes from `user`. `metric_daily` holds `water.intake_ml`, `water.target_ml` (days with
+  water) and `water.at_cap_min`. The last one is written lazily for closed days; the last finalised
+  date is kept in `user_setting` key `water.finalized`.
 - **Later**: `whoop_connection` (tokens, encrypted) and `whoop_cycle` / `whoop_sleep` /
   `whoop_recovery` / `whoop_workout`.
 

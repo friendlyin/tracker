@@ -7,7 +7,7 @@ photo, read your history and give you insights. The app itself contains no AI.
 Built for one person or a household: each person has their own account and sees only their own data.
 
 > **Status: early development.** Features are built in iterations (see [the plan](docs/requirements.md)).
-> Usable so far: the home screen, workouts and nutrition (✅), and Claude Code on your computer
+> Usable so far: the home screen, workouts, nutrition and water (✅), and Claude Code on your computer
 > through the local MCP server.
 
 ## Features (planned)
@@ -17,7 +17,7 @@ Built for one person or a household: each person has their own account and sees 
 | Workouts ✅ | Weekly sets per muscle group (major/minor targets, fractional credit for secondary muscles). You choose exercises in the gym, see your previous result instantly, and log warm-up and working sets. | 2 |
 | Nutrition ✅ | Daily kcal / protein budget with workout-day and rest-day targets. Claude logs meals from a photo; the app shows what is left. | 3 |
 | Claude (MCP) | Claude reads and writes your data: log meals, adjust targets, analyse trends. | 3 (local), 6 (claude.ai) |
-| Water | Water "debt" builds up through the day (slower at night) and is paid off by drinking. The app warns when you've been behind for too long. | 4 |
+| Water ✅ | Water "debt" builds up through the day (slower at night) and is paid off by drinking; one tap on the home screen logs a glass. The app warns when you've been behind for too long. | 4 |
 | Focus energy | Focus energy drains with work and information intake, refills with deliberate unfocus and sleep. The app prompts you to unfocus before you run out. | 5 |
 | Stats | One engine for all charts: any period, per feature or everything on one screen. | 7 |
 | Offline logging | Log sets in a gym with no signal; the app syncs later. | 8 |

@@ -11,3 +11,4 @@ dev-dist
 .private-terms
 *.sql
 !migrations/*.sql
+.tanstack/

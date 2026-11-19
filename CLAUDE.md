@@ -48,6 +48,8 @@ Code map:
   MCP tools (`worker/mcp/tools/`, served at `/mcp`) are thin wrappers over them.
 - `worker/services/entries.ts` + `shared/tracking/trackers.ts`: the tracking engine (entries of
   trackers defined in code, rolled up into `metric_daily`).
+- `shared/level/engine.ts` + `shared/schedule.ts`: the level engine (a level drifting per phase of the
+  day, moved by entries). Water (`shared/water/model.ts`) is its first configuration.
 - `shared/<feature>/`: zod schemas, DTO types (`types.ts`) and pure logic shared by PWA and Worker.
 - `src/routes/`: screens; `src/features/<feature>/`: query hooks and feature components; `src/ui/`: base
   components; `src/dev/variants.tsx`: `useVariant`.

@@ -16,7 +16,7 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 1 | Platform base (local) | ✅ |
 | 2 | Workouts | ✅ |
 | 3 | Nutrition + tracking engine + local MCP server | ✅ |
-| 4 | Water + level engine | next |
+| 4 | Water + level engine | built, design variants to pick |
 | 5 | Focus energy | |
 | 6 | Deploy to Cloudflare, login, connect Claude | |
 | 7 | Stats engine and Overview | |
@@ -99,6 +99,23 @@ A level that changes over time on its own and is moved by entries. It is a pure 
 
 Water is a debt that rises over time and drinking lowers it. Focus energy falls over time and unfocus
 and sleep raise it. Both are configurations of this one engine.
+
+**Implementation (iteration 4):**
+- `shared/level/engine.ts`: `simulate(model, { start, entries, to, clock })`.
+  - A model has bounds, a rate per hour for each phase (awake / asleep) and an `apply(level, entry)`
+    effect.
+  - The clock says when the phase changes (from the day schedule, `shared/schedule.ts`).
+  - The result is a piecewise-linear timeline, with a point wherever a bound is hit.
+- Helpers on the timeline:
+  - `durationWhere` (time at or past a threshold);
+  - `heldSince`;
+  - `classify` (threshold rules, most severe first, with an optional minimum time; held time can be
+    limited to "since the last wake");
+  - `firstReach`.
+- The engine has no tables: it runs on every read over the entries and settings, in the Worker and in
+  the PWA.
+- Drift that depends on active sessions, response curves and daily ceilings are added in iteration 5,
+  when focus energy needs them.
 
 ### Metrics and stats engine (rollups from iteration 2; full UI in iteration 7)
 
@@ -291,19 +308,71 @@ day's budget and the meals.
 
 ## Iteration 4: Water (+ level engine)
 
-Water "debt" that builds up through the day and is paid off by drinking.
+Water "debt" that builds up through the day and is paid off by drinking. Unlike meals, water is
+logged in the app (and by Claude).
 
-- **Settings:** daily target (litres, e.g. 3 l), cap 500 ml, night factor 0.25, urgency delay 60 min, credit
-  factor 0.3, credit cap 200 ml. The day schedule comes from the user setting.
-- **Rate:** pending water rises at a rate that adds up to the daily target over 24 h. It rises slower
-  at night (night rate = day rate × night factor) and stops at the cap.
-- **Drinking** lowers pending. If the user drinks more than is pending, the extra counts toward the daily total
-  and creates a small **credit** that delays the next build-up: credit = min(extra × 0.3, 200 ml).
-  Example: 500 ml when 200 ml is pending gives 90 ml credit, about 30 min of delay.
-- **Urgency:** pending sitting at the cap for longer than the urgency delay highlights the home widget.
-- **UI:** current pending, today's total vs target, one-tap amounts (e.g. 250 / 500 ml), undo.
-- **Metrics:** intake per day, time spent at cap.
-- **MCP:** `log_water`, `get_water_state`, `get_water_settings`, `set_water_settings`.
+- **Settings** (water settings screen, also via MCP):
+  - daily target 3000 ml, cap 500 ml;
+  - night factor 0.25, urgency delay 60 min;
+  - credit factor 0.3, credit cap 200 ml;
+  - quick amounts 250 / 500 ml.
+
+  The day schedule (wake and sleep time) comes from the profile.
+- **Model:** one level from −credit cap to +cap. Above zero it is pending water; below zero it is credit.
+  - **Rate:** pending rises at a rate that adds up to the daily target over 24 h, slower while asleep:
+    - day rate = target / (awake hours + night factor × asleep hours);
+    - night rate = day rate × night factor;
+    - with 07:00–23:00 and 3 l, that is 167 ml/h by day and 42 ml/h at night.
+  - It stops at the cap.
+  - **Drinking** pays off pending first. Water beyond that becomes credit: credit + extra × 0.3, at most
+    200 ml.
+    - Credit is used up at the build-up rate, so it delays the next build-up.
+    - Example: 500 ml when 200 ml is pending gives 90 ml credit, about 32 min of delay.
+    - The whole amount counts toward the day's total.
+  - **Continuity:** the level carries over between days, so the night's build-up is there at wake.
+    - The simulation starts at the previous day's wake time with nothing pending.
+    - Any drink larger than what is pending clears the history, so this start is effectively exact.
+- **States:**
+  - `ok` below the cap.
+  - `recommend` at the cap.
+  - `urgent` at the cap for longer than the urgency delay. The delay counts from the last wake time, so
+    a night at the cap does not make the morning urgent.
+  - Only urgent highlights the home tile (solid warning colour).
+- **Home tile:** pending ml, today's total against the target, and a one-tap button for the first quick
+  amount (a glass from home in one tap). Tapping elsewhere opens the water screen.
+- **Water screen:**
+  - pending, plus credit as "+90 ml ahead · 32 min";
+  - today's total / target;
+  - the two quick buttons and a custom amount, all in the footer;
+  - undo for 5 s after a tap;
+  - today's entries, each with a delete button;
+  - settings.
+- **Metrics:**
+  - `water.intake_ml` per day;
+  - `water.target_ml`, written for days with water;
+  - `water.at_cap_min`, awake minutes at the cap.
+- **MCP tools:**
+  - `log_water(ml, time?, id?)` returns the entry and the state.
+  - `delete_water(id)` and `list_water(date | from–to)`.
+  - `get_water_state`: pending, credit, `buildUpAt`, state, `cappedAt`, total vs target.
+  - `get_water_settings` and `set_water_settings`.
+
+**Status:** built (2026-11-19); design variants to be picked on the phone: `water.summary` (pending /
+total / curve) and `home.water` (pending / total).
+
+**Implementation notes**
+- Drinks are entries of the `water` tracker (ml in `entry.value`, no data). No new table.
+- The simulation lives in `shared/water/model.ts` and runs in the Worker (MCP) and in the PWA.
+  - The API returns its inputs: settings, schedule, timezone, and entries for yesterday and today.
+  - The PWA runs the simulation again every minute and after every write, so pending rises live
+    without refetching.
+  - Writes are optimistic, with client-generated ids.
+- `water.at_cap_min` keeps changing while a day is open, so it is written only for closed days.
+  - On the first water read or write of a new day, the days since the last run are finalised (at most
+    14, never before the first water entry).
+  - A write to an already finalised day recomputes that day and the next one.
+  - The last finalised date is kept in `user_setting` key `water.finalized`.
+- The app's quick amount and the MCP tools go through the same `logWater` service.
 
 ## Iteration 5: Focus energy
 
@@ -471,3 +540,6 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Tracking engine: system trackers are defined in code, all entries share one `entry` table; no `tracker` table and no generic entry MCP tools until user-defined trackers exist. |
 | 2026-11-19 | Nutrition targets are per day type (kcal and protein for workout and rest days). Protein above target counts as reached; only kcal above target is a warning. |
 | 2026-11-19 | Design: nutrition summary with big side-by-side numbers; home nutrition tile with kcal and protein as two equal numbers. |
+| 2026-11-19 | Water is logged in the app (home tile one-tap button, two configurable quick amounts plus a custom amount) and by Claude. |
+| 2026-11-19 | Water is one level from −credit cap to +cap and carries over between days. Urgency counts awake time since the last wake. Time at the cap is a metric written for closed days. |
+| 2026-11-19 | Level engine: pure simulation run on every read, in the Worker and the PWA; no tables. Session-dependent drift waits for focus energy. |
