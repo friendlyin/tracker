@@ -1,4 +1,4 @@
-# Health app
+# Tracker
 
 A personal health-tracking mobile PWA for one person or a household (a few accounts per
 deployment). Each person has a separate
@@ -37,7 +37,18 @@ pnpm db:generate         # create a SQL migration from schema.ts changes
 pnpm db:migrate:local    # apply migrations to local D1
 pnpm db:migrate:remote   # apply migrations to production D1
 pnpm deploy              # build + deploy to Cloudflare
+pnpm icons               # regenerate PNG icons from public/icon.svg
 ```
+
+Local dev: `cp .dev.vars.example .dev.vars`. On localhost the API acts as `DEV_USER_EMAIL`; in production
+it requires the Cloudflare Access JWT (`worker/auth.ts`) and fails closed.
+
+Code map:
+- `worker/services/*`: domain logic as `(db, userId, input)` functions. API routes (`worker/routes/`) and
+  MCP tools (iteration 3) are thin wrappers over them.
+- `shared/<feature>/`: zod schemas, DTO types (`types.ts`) and pure logic shared by PWA and Worker.
+- `src/routes/`: screens; `src/features/<feature>/`: query hooks and feature components; `src/ui/`: base
+  components; `src/dev/variants.tsx`: `useVariant`.
 
 ## Product and UI principles
 

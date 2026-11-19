@@ -1,4 +1,4 @@
-# Health
+# Tracker
 
 A self-hosted health tracker for your phone: workouts, food, water and focus, in one minimal app that
 you run on your own Cloudflare account, for free. It has an MCP server, so Claude can log meals from a
@@ -6,14 +6,14 @@ photo, read your history and give you insights. The app itself contains no AI.
 
 Built for one person or a household: each person has their own account and sees only their own data.
 
-> **Status: early development.** The project scaffold is done; features are being built in iterations
-> (see [the plan](docs/requirements.md)). Nothing below is usable yet unless marked ✅.
+> **Status: early development.** Features are built in iterations (see [the plan](docs/requirements.md)).
+> Usable so far: login, the home screen and workouts (✅).
 
 ## Features (planned)
 
 | Feature | What it does | Iteration |
 |---|---|---|
-| Workouts | Weekly sets per muscle group (major/minor targets, fractional credit for secondary muscles). You choose exercises in the gym, see your previous result instantly, and log warm-up and working sets. | 2 |
+| Workouts ✅ | Weekly sets per muscle group (major/minor targets, fractional credit for secondary muscles). You choose exercises in the gym, see your previous result instantly, and log warm-up and working sets. | 2 |
 | Nutrition | Daily kcal / protein budget with workout-day and rest-day targets. Meals logged by Claude from a photo, or by hand. | 3 |
 | Claude (MCP) | Claude reads and writes your data: log meals, adjust targets, analyse trends. | 3 |
 | Water | Water "debt" builds up through the day (slower at night) and is paid off by drinking. The app warns when you've been behind for too long. | 4 |
@@ -74,9 +74,13 @@ Every push to your fork's `main` branch redeploys automatically.
 
 ```bash
 pnpm install
+cp .dev.vars.example .dev.vars   # local dev user (you@example.com); git-ignored
 pnpm db:migrate:local
-pnpm dev                 # http://localhost:5173: app + API + local database
+pnpm dev                         # http://localhost:5173: app + API + local database
 ```
+
+There is no Cloudflare Access locally: on `localhost` the API acts as `DEV_USER_EMAIL` from `.dev.vars`.
+On any other host that variable is ignored and requests without a valid Access token get 401.
 
 | Command | |
 |---|---|
@@ -87,6 +91,7 @@ pnpm dev                 # http://localhost:5173: app + API + local database
 | `pnpm db:migrate:local` / `pnpm db:migrate:remote` | Apply migrations |
 | `pnpm cf-typegen` | Regenerate Worker types after editing `wrangler.jsonc` |
 | `pnpm check:private` | Scan the tree and git history for private terms |
+| `pnpm icons` | Regenerate the PNG app icons from `public/icon.svg` |
 
 Project layout:
 - `src/`: the React PWA

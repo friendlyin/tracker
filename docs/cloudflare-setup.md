@@ -105,8 +105,11 @@ pnpm wrangler secret put ACCESS_AUD           # the AUD tag from A6
 Dashboard alternative: **Workers & Pages → tracker → Settings → Variables and Secrets → + Add** →
 Type **Secret** → name + value → **Deploy**. Values stay hidden after saving.
 
-For local development, put local values in `.dev.vars` (git-ignored). Copy `.dev.vars.example` when it
-is added in iteration 1.
+For local development, copy `.dev.vars.example` to `.dev.vars` (git-ignored). Locally the app has no
+Access login and acts as `DEV_USER_EMAIL`.
+
+Until both secrets are set, the deployed API answers every request with 401 (it fails closed). The app
+shell still loads but shows no data.
 
 ### A8. Install the app on your iPhone
 1. Open the app URL in **Safari** (it must be Safari on iOS).
@@ -162,7 +165,7 @@ creates the namespace. To check in the dashboard: **Storage & databases → Work
 - **claude.ai** (web, then also available in the desktop and mobile apps): Settings → **Connectors** →
   **Add custom connector** → URL `https://<app-host>/mcp` → Connect → log in with the email code →
   Approve.
-- **Claude Code:** `claude mcp add --transport http health https://<app-host>/mcp`, then run `/mcp`
+- **Claude Code:** `claude mcp add --transport http tracker https://<app-host>/mcp`, then run `/mcp`
   inside Claude Code to log in.
 
 Each invited person connects their own Claude with their own account and sees only their own data.

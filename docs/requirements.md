@@ -101,6 +101,9 @@ principles (`CLAUDE.md`), infrastructure analysis and these docs.
 
 Deployed, installable, logged-in empty app.
 
+**Status:** code done (2026-11-19). Waiting for the first deploy and the 30-minute Access test on the
+iPhone (setup steps A1–A8). If the test passes, remove the `better-auth` dependency.
+
 - GitHub repository + automatic deploys on push to `main` (Workers Builds), with migrations run on
   deploy. Free `*.workers.dev` address (no custom domain for now).
 - Auth: **Cloudflare Access** with email one-time-code login and an email allowlist (see
@@ -166,6 +169,39 @@ Weekly-volume-driven gym logging where exercises are chosen in the gym.
     `get_exercise_history`, `log_workout`
   - exercise library: `list_exercises`, `create_exercise`, `update_exercise` (incl. muscle
     contributions), `archive_exercise`
+
+**Status:** done (2026-11-19), except picking the design variants on the phone. The MCP tools above are
+implemented as service functions in `worker/services/workouts.ts` and become MCP tools in iteration 3:
+
+| MCP tool | Service function |
+|---|---|
+| `get_weekly_volume` | `getWeekPlan` |
+| `list_workouts(period)` | `listWorkouts({ from, to })` |
+| `get_workout(date)` | `listWorkouts` for the date + `getWorkout` |
+| `get_exercise_history` | `getExerciseHistory` |
+| `log_workout` | `logWorkout` |
+| `list_exercises` / `create_exercise` / `update_exercise` / `archive_exercise` | same names |
+
+**Implementation notes**
+- Weekly sets per group are floored to 0.5 for display. Today's suggested sets are rounded up to whole
+  sets.
+- Remaining planned workouts = max(1, min(workouts per week − workouts done, days left in the week)).
+  While a workout is active, today counts as one of them. Once today's workout is finished, the plan
+  moves on to the next workout.
+- Suggested today = what was left before today's workouts ÷ remaining planned workouts, rounded up, so
+  it stays stable while logging. A group is at risk when that exceeds 1.5× a normal session
+  (target ÷ workouts per week).
+- Order: groups with sets left today first, then by remaining sets; completed groups last.
+- Group screen: primary exercises (contribution 1.0) first, then secondary ones; each list is most-used
+  first (working sets in the last 8 weeks, then all time).
+- Logging prefill: follows last session's set at the same position, carries today's values after a
+  deviation (`shared/workouts/prefill.ts`). The default set kind is warm-up until last session's number
+  of warm-ups is reached. No automatic weight progression.
+- Logging the first set starts a workout automatically. A workout with no new set for 3 h is closed at
+  its last set; a workout finished without sets is deleted.
+- Weight steps: 2.5 kg for barbell and machine, 1 kg for dumbbell (per dumbbell) and cable.
+- Design variants to pick: `home.grid` (tiles / rows / lead), `workouts.budget` (bars / numbers / grid),
+  `exercise.logger` (steppers / keypad).
 
 ## Iteration 3: Nutrition + MCP server (+ tracking engine)
 
@@ -343,3 +379,8 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Sleep quality: good / ok / bad. Focus sessions: live timer and logging afterwards. |
 | 2026-11-19 | Focus drain has three tiers: baseline 3/h, moderate focus 6/h (podcasts, films, reading), deep focus 12/h. |
 | 2026-11-19 | Open source from the start; no personal information in the repository or git history. |
+| 2026-11-19 | App name "Tracker". Light and dark themes follow the system. |
+| 2026-11-19 | Workout MCP tools are built as service functions in iteration 2 and exposed when the MCP server lands in iteration 3. |
+| 2026-11-19 | No automatic weight progression; the logger prefills last session's values. |
+| 2026-11-19 | Muscle groups are fixed keys; categories and targets are user settings. The seed exercise library is copied per user, so every exercise is editable. |
+| 2026-11-19 | A new user row is created on first login with a valid Access token; the Access allowlist is the only gate. |

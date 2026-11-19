@@ -69,7 +69,7 @@ limit (most likely from password hashing or heavy statistics) or want 30-day bac
 | Routing | TanStack Router (file-based) | Type-safe routes and search params (useful for period selectors such as `?period=month`). |
 | Server state | TanStack Query | Caching, optimistic updates, and offline persistence later. |
 | Styling | Tailwind CSS v4 with our own tokens | Fast to build flat, custom UI. We do not use a component kit, so the app does not look generic. |
-| API | Hono on Workers | Small, fast, typed RPC client (`hono/client`) shared with the frontend. |
+| API | Hono on Workers | Small and fast. The PWA calls it with a thin fetch wrapper; request/response types live in `shared/` (`hono/client` would pull Worker types into the browser build). |
 | Validation | zod | One schema for API input, MCP tool input and forms. |
 | DB | D1 + Drizzle ORM + drizzle-kit | Typed queries; SQL migrations applied by wrangler. |
 | Auth | Cloudflare Access (chosen); Better Auth as fallback | See §3. Confirmed by a test on the iPhone at the start of iteration 1. |
@@ -167,7 +167,7 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
 - Endpoint: `https://<app-host>/mcp` (Streamable HTTP).
 - Connect from claude.ai: Settings → Connectors → Add custom connector → paste the URL. It works on
   Claude mobile once it is added on the web.
-- Connect from Claude Code: `claude mcp add --transport http health https://<app-host>/mcp`.
+- Connect from Claude Code: `claude mcp add --transport http tracker https://<app-host>/mcp`.
 - Tools follow the domain: `log_meal`, `get_day_summary`, `log_water`, `get_workout_history`,
   `get_stats(period)`, and so on. Each iteration lists its tools in `docs/requirements.md`.
 - For insights, read tools return compact aggregated data (daily totals, weekly sets per muscle group)
@@ -206,11 +206,16 @@ The three shared engines (tracking, level, metrics) are described in
 - **Metrics engine**: `metric_daily` (user, local_date, metric, dimension, value), updated on every
   write and indexed by (user, metric, local_date).
 - **Workouts** (domain tables, more structure than entries):
-  - `muscle_group` (key, category major/minor, per user)
-  - `exercise` (global seed + user-owned, recommended sets/reps)
+  - muscle groups are 8 fixed keys in code (`shared/workouts/groups.ts`); each group's category
+    (major/minor), the targets and workouts per week live in `user_setting` key `workouts`
+  - `exercise` (user-owned; the seed library in `shared/workouts/seed.ts` is copied to each new user,
+    `seed_key` remembers the origin; equipment, recommended sets and rep range, `archived_at`)
   - `exercise_muscle` (exercise, group, contribution 1.0 / 0.5 / 0.25)
-  - `workout` (started_at, ended_at, local_date)
-  - `workout_set` (workout, exercise, order, kind warmup/working, reps, weight_kg)
+  - `workout` (started_at, ended_at, tz, local_date)
+  - `workout_set` (workout, exercise, position, kind warmup/working, reps, weight_kg, performed_at)
+  - weekly volume is computed in SQL from sets (cheap at this size); `metric_daily` holds
+    `workouts.count`, `workouts.working_sets` per group, `exercise.top_set_kg` and `exercise.e1rm_kg`
+    per exercise for the stats engine
 - **Nutrition**: `day_type` (local_date → workout/rest, auto or manual). Targets live in settings.
 - **Later**: `whoop_connection` (tokens, encrypted) and `whoop_cycle` / `whoop_sleep` /
   `whoop_recovery` / `whoop_workout`.
