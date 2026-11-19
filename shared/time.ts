@@ -53,3 +53,28 @@ export function weekRange(d: LocalDate): { start: LocalDate; end: LocalDate } {
 export function daysLeftInWeek(d: LocalDate): number {
   return 8 - isoWeekday(d);
 }
+
+const isoFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/** `instant` as ISO 8601 in the timezone's local time with its offset, e.g. 2026-01-15T12:00:00+01:00. */
+export function isoInZone(instant: number, tz: string): string {
+  let f = isoFormatters.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZoneName: "longOffset",
+    });
+    isoFormatters.set(tz, f);
+  }
+  const parts = f.formatToParts(new Date(instant));
+  const get = (t: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === t)?.value ?? "";
+  const offset = get("timeZoneName").replace("GMT", "");
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}${offset === "" || offset === "+00:00" ? "Z" : offset}`;
+}

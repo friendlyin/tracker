@@ -36,7 +36,7 @@ export const updateSetInput = z.object({
   weightKg: weightKg.optional(),
 });
 
-const exerciseFields = {
+export const exerciseFields = {
   name: z.string().trim().min(1).max(80),
   equipment,
   muscles: musclesSchema,

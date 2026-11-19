@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, daysLeftInWeek, isoWeekday, localDate, weekRange } from "./time";
+import { addDays, daysLeftInWeek, isoInZone, isoWeekday, localDate, weekRange } from "./time";
 
 describe("time", () => {
   it("derives the local date in a timezone", () => {
@@ -21,5 +21,12 @@ describe("time", () => {
   it("adds days across month ends", () => {
     expect(addDays("2026-11-30", 1)).toBe("2026-12-01");
     expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+
+  it("formats an instant as local ISO with offset", () => {
+    const instant = Date.UTC(2026, 0, 15, 11, 0, 0);
+    expect(isoInZone(instant, "Europe/Berlin")).toBe("2026-01-15T12:00:00+01:00");
+    expect(isoInZone(instant, "UTC")).toBe("2026-01-15T11:00:00Z");
+    expect(isoInZone(instant, "America/New_York")).toBe("2026-01-15T06:00:00-05:00");
   });
 });

@@ -35,4 +35,16 @@ export const METRICS = {
     better: "higher",
     dimension: "exercise",
   },
+  kcal: { id: "nutrition.kcal", unit: "kcal", aggregation: "sum", better: "none" },
+  protein: { id: "nutrition.protein_g", unit: "g", aggregation: "sum", better: "higher" },
+  fat: { id: "nutrition.fat_g", unit: "g", aggregation: "sum", better: "none" },
+  carbs: { id: "nutrition.carbs_g", unit: "g", aggregation: "sum", better: "none" },
+  /** The targets that applied that day (they depend on the day type and can change over time). */
+  kcalTarget: { id: "nutrition.kcal_target", unit: "kcal", aggregation: "sum", better: "none" },
+  proteinTarget: {
+    id: "nutrition.protein_target",
+    unit: "g",
+    aggregation: "sum",
+    better: "none",
+  },
 } as const satisfies Record<string, MetricDef>;
