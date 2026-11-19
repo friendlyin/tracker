@@ -170,7 +170,7 @@ Weekly-volume-driven gym logging where exercises are chosen in the gym.
   - exercise library: `list_exercises`, `create_exercise`, `update_exercise` (incl. muscle
     contributions), `archive_exercise`
 
-**Status:** done (2026-11-19), except picking the design variants on the phone. The MCP tools above are
+**Status:** done (2026-11-19). The MCP tools above are
 implemented as service functions in `worker/services/workouts.ts` and become MCP tools in iteration 3:
 
 | MCP tool | Service function |
@@ -200,8 +200,9 @@ implemented as service functions in `worker/services/workouts.ts` and become MCP
 - Logging the first set starts a workout automatically. A workout with no new set for 3 h is closed at
   its last set; a workout finished without sets is deleted.
 - Weight steps: 2.5 kg for barbell and machine, 1 kg for dumbbell (per dumbbell) and cable.
-- Design variants to pick: `home.grid` (tiles / rows / lead), `workouts.budget` (bars / numbers / grid),
-  `exercise.logger` (steppers / keypad).
+- Design variants chosen (2026-11-19): home grid **tiles** (2-column square widgets), budget list
+  **grid** (2-column cells per muscle group), set entry **steppers** (− / + around kg and reps).
+  Rejected: home rows / lead, budget bars / big numbers, on-screen keypad.
 
 ## Iteration 3: Nutrition + MCP server (+ tracking engine)
 
@@ -384,3 +385,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | No automatic weight progression; the logger prefills last session's values. |
 | 2026-11-19 | Muscle groups are fixed keys; categories and targets are user settings. The seed exercise library is copied per user, so every exercise is editable. |
 | 2026-11-19 | A new user row is created on first login with a valid Access token; the Access allowlist is the only gate. |
+| 2026-11-19 | Design: home tiles, two-column budget grid, stepper set entry. |

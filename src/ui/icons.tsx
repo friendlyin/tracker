@@ -62,9 +62,3 @@ export const EditIcon = (p: P) => (
     <path d="M4 20h4L19 9l-4-4L4 16v4z" />
   </Svg>
 );
-export const BackspaceIcon = (p: P) => (
-  <Svg {...p}>
-    <path d="M8 5h12v14H8l-5-7 5-7z" />
-    <path d="M12 9.5l5 5M17 9.5l-5 5" />
-  </Svg>
-);
