@@ -9,7 +9,7 @@ export interface MetricDef {
   /** How daily values combine into weeks/months. */
   aggregation: Aggregation;
   better: "higher" | "lower" | "none";
-  dimension?: "muscle_group" | "exercise";
+  dimension?: "muscle_group" | "exercise" | "tag";
 }
 
 export const METRICS = {
@@ -52,4 +52,37 @@ export const METRICS = {
   waterTarget: { id: "water.target_ml", unit: "ml", aggregation: "sum", better: "none" },
   /** Awake minutes with pending water at the cap; written once the day is over. */
   waterAtCap: { id: "water.at_cap_min", unit: "min", aggregation: "sum", better: "lower" },
+  focusDeep: { id: "focus.deep_min", unit: "min", aggregation: "sum", better: "none" },
+  focusDeepSessions: {
+    id: "focus.deep_sessions",
+    unit: "count",
+    aggregation: "sum",
+    better: "none",
+  },
+  /** By tag (podcast, film, …); untagged sessions have the empty dimension. */
+  focusModerate: {
+    id: "focus.moderate_min",
+    unit: "min",
+    aggregation: "sum",
+    better: "none",
+    dimension: "tag",
+  },
+  focusUnfocus: { id: "focus.unfocus_min", unit: "min", aggregation: "sum", better: "higher" },
+  /** The rest are written once the day is over, for days with focus entries or sleep set. */
+  focusMinEnergy: { id: "focus.min_energy", unit: "points", aggregation: "min", better: "higher" },
+  focusLowSuggest: {
+    id: "focus.low_suggest_min",
+    unit: "min",
+    aggregation: "sum",
+    better: "lower",
+  },
+  focusLowRecommend: {
+    id: "focus.low_recommend_min",
+    unit: "min",
+    aggregation: "sum",
+    better: "lower",
+  },
+  focusLowUrgent: { id: "focus.low_urgent_min", unit: "min", aggregation: "sum", better: "lower" },
+  /** 3 good, 2 ok, 1 bad. */
+  sleepQuality: { id: "sleep.quality", unit: "points", aggregation: "avg", better: "higher" },
 } as const satisfies Record<string, MetricDef>;

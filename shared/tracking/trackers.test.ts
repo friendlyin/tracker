@@ -35,3 +35,31 @@ describe("water tracker", () => {
     ).toEqual([{ metric: "water.intake_ml", value: 750 }]);
   });
 });
+
+describe("focus tracker", () => {
+  it("rolls finished sessions up by kind and tag", () => {
+    const m = 60_000;
+    const e = (kind: "deep" | "moderate" | "unfocus", min: number | null, tag?: string) => ({
+      value: null,
+      occurredAt: 0,
+      endedAt: min === null ? null : min * m,
+      data: { kind, tag },
+    });
+    expect(
+      TRACKERS.focus.metrics([
+        e("deep", 90),
+        e("deep", 30),
+        e("deep", null),
+        e("moderate", 45, "podcast"),
+        e("moderate", 15),
+        e("unfocus", 20),
+      ]),
+    ).toEqual([
+      { metric: "focus.deep_min", value: 120 },
+      { metric: "focus.deep_sessions", value: 2 },
+      { metric: "focus.moderate_min", dimension: "podcast", value: 45 },
+      { metric: "focus.moderate_min", dimension: "", value: 15 },
+      { metric: "focus.unfocus_min", value: 20 },
+    ]);
+  });
+});

@@ -3,7 +3,6 @@ import {
   durationWhere,
   firstReach,
   heldSince,
-  type LevelClock,
   type LevelModel,
   pointsFrom,
   type Simulation,
@@ -13,8 +12,9 @@ import {
   awakeHours,
   type DaySchedule,
   isAwake,
+  lastWake,
   nextPhaseChange,
-  phaseAt,
+  scheduleClock,
   wakeInstant,
   zonedInstant,
 } from "../schedule";
@@ -58,13 +58,6 @@ export function waterModel(s: WaterSettings, sched: DaySchedule): LevelModel<Dri
   };
 }
 
-export function scheduleClock(sched: DaySchedule, tz: string): LevelClock {
-  return {
-    phaseAt: (t) => phaseAt(t, sched, tz),
-    nextChange: (t) => nextPhaseChange(t, sched, tz),
-  };
-}
-
 const drinks = (inputs: WaterInputsDto): Drink[] =>
   inputs.entries.map((e) => ({ at: e.drankAt, ml: e.ml }));
 
@@ -80,13 +73,6 @@ function simulateFrom(inputs: WaterInputsDto, date: LocalDate, to: number): Simu
     to,
     clock: scheduleClock(schedule, tz),
   });
-}
-
-/** The most recent wake time at or before `now`. */
-function lastWake(now: number, sched: DaySchedule, tz: string): number {
-  const today = localDate(now, tz);
-  const w = wakeInstant(today, sched, tz);
-  return w <= now ? w : wakeInstant(addDays(today, -1), sched, tz);
 }
 
 export function waterState(inputs: WaterInputsDto, now: number): WaterStateDto {

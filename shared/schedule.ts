@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { LocalDate } from "./time";
+import { addDays, type LocalDate, localDate } from "./time";
 
 // The user's day schedule (wake and sleep time, local "HH:MM"). Water and focus drift differently
 // while awake and asleep. Times follow the user's current timezone. Approximation: on a night with a
@@ -102,3 +102,23 @@ export function nextPhaseChange(instant: number, s: DaySchedule, tz: string): nu
 
 export const wakeInstant = (date: LocalDate, s: DaySchedule, tz: string) =>
   zonedInstant(date, s.wakeTime, tz);
+
+/** The sleep time that ends the day woken up on `date` (Infinity when awake all day). */
+export const sleepInstant = (date: LocalDate, s: DaySchedule, tz: string) =>
+  nextPhaseChange(wakeInstant(date, s, tz), s, tz);
+
+/** The local date of the most recent wake time at or before `now`. */
+export function wakeDate(now: number, s: DaySchedule, tz: string): LocalDate {
+  const today = localDate(now, tz);
+  return wakeInstant(today, s, tz) <= now ? today : addDays(today, -1);
+}
+
+/** The most recent wake time at or before `now`. */
+export const lastWake = (now: number, s: DaySchedule, tz: string) =>
+  wakeInstant(wakeDate(now, s, tz), s, tz);
+
+/** The day schedule as a level-engine clock (`LevelClock`). */
+export const scheduleClock = (s: DaySchedule, tz: string) => ({
+  phaseAt: (t: number) => phaseAt(t, s, tz),
+  nextChange: (t: number) => nextPhaseChange(t, s, tz),
+});

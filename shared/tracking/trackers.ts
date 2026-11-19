@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { type FocusData, focusDataSchema, type SleepData, sleepDataSchema } from "../focus/schemas";
 import { METRICS } from "../metrics/registry";
 import { type MealData, mealDataSchema } from "../nutrition/schemas";
 import { sumMeals } from "../nutrition/summary";
@@ -67,7 +68,60 @@ const water: TrackerDef<WaterData> = {
   },
 };
 
-export const TRACKERS = { meal, water } as const;
+const minutes = (e: TrackedEntry<unknown>) =>
+  e.endedAt === null ? 0 : Math.max(0, e.endedAt - e.occurredAt) / 60_000;
+
+/** Deep and moderate focus and unfocus. Running timers count once stopped, on the day they started. */
+const focus: TrackerDef<FocusData> = {
+  key: "focus",
+  kind: "session",
+  unit: "min",
+  data: focusDataSchema,
+  metricIds: [
+    METRICS.focusDeep.id,
+    METRICS.focusDeepSessions.id,
+    METRICS.focusModerate.id,
+    METRICS.focusUnfocus.id,
+  ],
+  metrics(entries) {
+    const done = entries.filter((e) => e.endedAt !== null);
+    const of = (k: FocusData["kind"]) => done.filter((e) => e.data.kind === k);
+    const sum = (es: readonly TrackedEntry<FocusData>[]) =>
+      Math.round(es.reduce((n, e) => n + minutes(e), 0));
+    const rows: MetricRow[] = [];
+    const deep = of("deep");
+    if (deep.length > 0) {
+      rows.push({ metric: METRICS.focusDeep.id, value: sum(deep) });
+      rows.push({ metric: METRICS.focusDeepSessions.id, value: deep.length });
+    }
+    const byTag = new Map<string, TrackedEntry<FocusData>[]>();
+    for (const e of of("moderate")) {
+      const tag = e.data.tag ?? "";
+      byTag.set(tag, [...(byTag.get(tag) ?? []), e]);
+    }
+    for (const [tag, es] of byTag) {
+      rows.push({ metric: METRICS.focusModerate.id, dimension: tag, value: sum(es) });
+    }
+    const unfocus = of("unfocus");
+    if (unfocus.length > 0) rows.push({ metric: METRICS.focusUnfocus.id, value: sum(unfocus) });
+    return rows;
+  },
+};
+
+/** One entry per local date; `value` is 3 good, 2 ok, 1 bad. */
+const sleep: TrackerDef<SleepData> = {
+  key: "sleep",
+  kind: "choice",
+  unit: "points",
+  data: sleepDataSchema,
+  metricIds: [METRICS.sleepQuality.id],
+  metrics(entries) {
+    const last = entries[entries.length - 1];
+    return last?.value ? [{ metric: METRICS.sleepQuality.id, value: last.value }] : [];
+  },
+};
+
+export const TRACKERS = { meal, water, focus, sleep } as const;
 
 export type TrackerKey = keyof typeof TRACKERS;
 export type TrackerData<K extends TrackerKey> =

@@ -12,11 +12,17 @@ export interface LevelPoint {
   level: number;
 }
 
-export interface LevelModel<E> {
+/**
+ * Change per hour: a constant, or affine in the level (dL/dt = base + perLevel × L), which is how a
+ * response curve is expressed (focus restores faster when more energy is left).
+ */
+export type Rate = number | { base: number; perLevel: number };
+
+export interface LevelModel<E, S extends string = never> {
   min: number;
   max: number;
-  /** Change per hour in a phase (positive rises, negative falls). */
-  rate(phase: Phase): number;
+  /** Change per hour in a phase while the spans of `active` kinds run (positive rises). */
+  rate(phase: Phase, active: ReadonlySet<S>): Rate;
   /** Instant effect of an entry; the result is clamped to [min, max]. */
   apply(level: number, entry: E): number;
 }
@@ -27,30 +33,61 @@ export interface LevelClock {
   nextChange(t: number): number;
 }
 
-export interface SimulateInput<E extends { at: number }> {
+/** Something that runs for a while and changes the rate (a focus session). */
+export interface LevelSpan<S extends string> {
+  from: number;
+  to: number;
+  kind: S;
+}
+
+export interface SimulateInput<E extends { at: number }, S extends string = never> {
   start: { at: number; level: number };
   /** Entries before `start.at` or after `to` are ignored. */
   entries: readonly E[];
+  spans?: readonly LevelSpan<S>[];
   to: number;
   clock: LevelClock;
 }
 
 export interface Simulation {
-  /** Piecewise-linear timeline: straight lines between points, vertical steps at entries. */
+  /**
+   * Piecewise-linear timeline: straight lines between points, vertical steps at entries. Curved
+   * (affine) stretches get a point every 5 minutes.
+   */
   points: LevelPoint[];
   level: number;
 }
 
 const HOUR = 3_600_000;
+const CURVE_STEP = 5 * 60_000;
 
-export function simulate<E extends { at: number }>(
-  model: LevelModel<E>,
-  input: SimulateInput<E>,
+/** The level after `ms` at a constant rate `r` (unclamped). */
+function after(level: number, r: { base: number; perLevel: number }, ms: number): number {
+  const h = ms / HOUR;
+  if (r.perLevel === 0) return level + r.base * h;
+  const eq = -r.base / r.perLevel;
+  return eq + (level - eq) * Math.exp(r.perLevel * h);
+}
+
+/** Ms until the level reaches `bound` at rate `r`; Infinity if it never does. */
+function msUntil(level: number, r: { base: number; perLevel: number }, bound: number): number {
+  if (r.perLevel === 0) return r.base === 0 ? Infinity : ((bound - level) / r.base) * HOUR;
+  const eq = -r.base / r.perLevel;
+  const ratio = (bound - eq) / (level - eq);
+  if (!(ratio > 0)) return Infinity;
+  const h = Math.log(ratio) / r.perLevel;
+  return h >= 0 && Number.isFinite(h) ? h * HOUR : Infinity;
+}
+
+export function simulate<E extends { at: number }, S extends string = never>(
+  model: LevelModel<E, S>,
+  input: SimulateInput<E, S>,
 ): Simulation {
   const clamp = (v: number) => Math.min(model.max, Math.max(model.min, v));
   const events = input.entries
     .filter((e) => e.at >= input.start.at && e.at <= input.to)
     .sort((a, b) => a.at - b.at);
+  const spans = (input.spans ?? []).filter((s) => s.to > s.from);
   let t = input.start.at;
   let level = clamp(input.start.level);
   const points: LevelPoint[] = [{ t, level }];
@@ -63,17 +100,36 @@ export function simulate<E extends { at: number }>(
       i++;
     }
   };
+  const nextSpanEdge = () => {
+    let n = Infinity;
+    for (const s of spans) {
+      if (s.from > t) n = Math.min(n, s.from);
+      else if (s.to > t) n = Math.min(n, s.to);
+    }
+    return n;
+  };
+  const activeAt = () => new Set(spans.filter((s) => s.from <= t && s.to > t).map((s) => s.kind));
 
   applyDue();
   while (t < input.to) {
-    const end = Math.min(input.to, input.clock.nextChange(t), events[i]?.at ?? Infinity);
-    const rate = model.rate(input.clock.phaseAt(t));
-    const bound = rate > 0 ? model.max : rate < 0 ? model.min : level;
-    if (bound !== level) {
-      const hit = t + ((bound - level) / rate) * HOUR;
-      if (hit < end) points.push({ t: hit, level: bound });
+    const end = Math.min(
+      input.to,
+      input.clock.nextChange(t),
+      events[i]?.at ?? Infinity,
+      nextSpanEdge(),
+    );
+    const raw = model.rate(input.clock.phaseAt(t), activeAt());
+    const r = typeof raw === "number" ? { base: raw, perLevel: 0 } : raw;
+    const slope = r.base + r.perLevel * level;
+    const bound = slope > 0 ? model.max : slope < 0 ? model.min : level;
+    const hit = bound === level ? Infinity : t + msUntil(level, r, bound);
+    if (r.perLevel !== 0 && slope !== 0) {
+      for (let s = t + CURVE_STEP; s < Math.min(end, hit); s += CURVE_STEP) {
+        points.push({ t: s, level: clamp(after(level, r, s - t)) });
+      }
     }
-    level = clamp(level + (rate * (end - t)) / HOUR);
+    if (hit < end) points.push({ t: hit, level: bound });
+    level = hit <= end ? bound : clamp(after(level, r, end - t));
     t = end;
     points.push({ t, level });
     applyDue();
@@ -199,6 +255,26 @@ export function firstReach(
   }
   const last = points[points.length - 1];
   return last && last.level >= level && last.t >= from ? last.t : null;
+}
+
+/** First time at or after `from` the timeline falls to `level`; null if it never does. */
+export function firstFall(
+  points: readonly LevelPoint[],
+  level: number,
+  from = Number.NEGATIVE_INFINITY,
+): number | null {
+  return firstReach(
+    points.map((p) => ({ t: p.t, level: -p.level })),
+    -level,
+    from,
+  );
+}
+
+/** The lowest level within [from, to]. */
+export function minLevel(points: readonly LevelPoint[], from: number, to: number): number {
+  let m = Math.min(levelAt(points, from), levelAt(points, to));
+  for (const p of points) if (p.t >= from && p.t <= to) m = Math.min(m, p.level);
+  return m;
 }
 
 /** The level at `t` (linear between points; after a step at `t`, the level after it). */
