@@ -75,7 +75,7 @@ limit (most likely from password hashing or heavy statistics) or want 30-day bac
 | Auth | Cloudflare Access | See §3. Confirmed by a test on the iPhone in iteration 6 (deploy). |
 | MCP | Agents SDK (`agents`) + `@modelcontextprotocol/sdk` + `@cloudflare/workers-oauth-provider` | Streamable-HTTP MCP endpoint at `/mcp` with OAuth 2.1, so it works as a claude.ai custom connector and in Claude Code. |
 | PWA | vite-plugin-pwa (Workbox) | Manifest, service worker, app-shell caching. |
-| Charts | Decided in the Stats iteration, using design variants | Candidates: hand-written SVG (most control over a flat look), visx, Recharts. |
+| Charts | Hand-written SVG (`src/ui/charts/`) | A few small primitives (bars against a target, line, sparkline, calendar heatmap) drawn with the design tokens: full control over the flat look, no chart library in the bundle. Tap to select, no hover. |
 | Lint/format/test | Biome, Vitest | |
 
 ### Repository layout
@@ -183,8 +183,8 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
 - Connect from claude.ai: Settings → Connectors → Add custom connector → paste the URL. It works on
   Claude mobile once it is added on the web.
 - Connect from Claude Code: `claude mcp add --transport http tracker https://<app-host>/mcp`.
-- Tools follow the domain: `log_meal`, `get_day_summary`, `log_water`, `get_workout_history`,
-  `get_stats(period)`, and so on. Each iteration lists its tools in `docs/requirements.md`.
+- Tools follow the domain: `log_meal`, `get_day_summary`, `log_water`, `get_exercise_history`,
+  `get_metrics`, and so on. Each iteration lists its tools in `docs/requirements.md`.
 - For insights, read tools return compact aggregated data (daily totals, weekly sets per muscle group)
   so Claude can reason over months without pulling raw rows.
 
@@ -254,9 +254,14 @@ The three shared engines (tracking, level, metrics) are described in
   `shared/level/`, run on every read. The API returns the simulation's inputs, so the PWA runs the same simulation live
   (every minute and after optimistic writes).
 - **Metrics engine**: `metric_daily` (user, local_date, metric, dimension, value), updated on every
-  write and indexed by (user, metric, local_date).
+  write and indexed by (user, metric, local_date). The registry (`shared/metrics/registry.ts`) says how
+  each metric combines over days, what a day without a row means and which metric holds its target.
+  Stats read it with one query per request, aggregated per bucket (day, Monday week, month) in SQL
+  (`worker/services/stats.ts`); `shared/metrics/series.ts` turns the rows into chart values and
+  `shared/metrics/progress.ts` computes strength trends. A new rollup metric is backfilled for past
+  days by a SQL migration.
 - **Workouts** (domain tables, more structure than entries):
-  - muscle groups are 8 fixed keys in code (`shared/workouts/groups.ts`); each group's category
+  - muscle groups are 9 fixed keys in code (`shared/workouts/groups.ts`); each group's category
     (major/minor), the targets and workouts per week live in `user_setting` key `workouts`
   - `exercise` (user-owned; the seed library in `shared/workouts/seed.ts` is copied to each new user,
     `seed_key` remembers the origin; equipment, recommended sets and rep range, `archived_at`)

@@ -22,6 +22,13 @@
       "when": 1795116477800,
       "tag": "0002_exercise_seed_index",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795116695069,
+      "tag": "0003_best_reps_backfill",
+      "breakpoints": true
     }
   ]
 }

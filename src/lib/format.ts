@@ -52,3 +52,35 @@ export const fmtElapsed = (ms: number) => {
   const ss = String(s % 60).padStart(2, "0");
   return h > 0 ? `${h}:${String(mm).padStart(2, "0")}:${ss}` : `${mm}:${ss}`;
 };
+
+const shortDay = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
+const monthYear = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
+const shortMonth = new Intl.DateTimeFormat(undefined, { month: "short" });
+const shortMonthYear = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
+const at = (d: string) => new Date(`${d}T12:00:00`);
+
+/** A bucket by its first day: "Mon 16 Nov", "16 Nov" (a week) or "Nov 2026". */
+export function fmtBucket(d: string, bucket: "day" | "week" | "month") {
+  if (bucket === "day") return fmtDay(d);
+  if (bucket === "week") return shortDay.format(at(d));
+  return shortMonthYear.format(at(d));
+}
+
+/** Axis label for a bucket: "16 Nov" or "Nov". */
+export const fmtAxis = (d: string, bucket: "day" | "week" | "month") =>
+  bucket === "month" ? shortMonth.format(at(d)) : shortDay.format(at(d));
+
+/** "16 – 22 Nov", "November 2026", "Sep – Nov 2026", "Dec 2025 – Nov 2026". */
+export function fmtPeriod(p: { kind: string; from: string; to: string }) {
+  if (p.kind === "week") return shortDay.formatRange(at(p.from), at(p.to));
+  if (p.kind === "month") return monthYear.format(at(p.from));
+  return shortMonthYear.formatRange(at(p.from), at(p.to));
+}
+
+/** A signed change: "+4.2%", "−3.1%". */
+export const fmtPct = (v: number) =>
+  `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(Math.abs(v) < 10 ? 1 : 0)}%`;
+
+/** A rounded value: whole numbers from 10 up, one decimal below. */
+export const fmtNum = (v: number) =>
+  Math.abs(v) >= 10 ? fmtInt(v) : String(Math.round(v * 10) / 10);

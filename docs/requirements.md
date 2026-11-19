@@ -19,7 +19,7 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 4 | Water + level engine | ✅ |
 | 5 | Focus energy | ✅ |
 | 6 | Deploy to Cloudflare, login, connect Claude | ✅ |
-| 7 | Stats engine and Overview | next |
+| 7 | Stats engine and Overview | in progress |
 | 8 | Offline-proof logging | ✅ |
 | 9 | WHOOP | |
 | 10 | Habits | |
@@ -132,21 +132,25 @@ and sleep raise it. Both are configurations of this one engine.
 
 ### Metrics and stats engine (rollups from iteration 2; full UI in iteration 7)
 
-- **Metric registry:** each feature registers metrics with an id, unit, daily aggregation (sum / avg /
-  min / max / last / count), an optional target (can depend on the day, e.g. workout vs rest day),
-  which direction is better, and optional dimensions (muscle group, exercise).
+- **Metric registry:** each feature registers metrics with an id, label, unit, how days combine into
+  weeks and months (sum / avg / min / max), which direction is better, an optional dimension (muscle
+  group, exercise, tag), what a day without a row means (`zero`: nothing drunk; `unknown`: nothing
+  logged) and the metric holding its target. Targets are stored per day as their own metrics, because
+  they depend on the day (workout vs rest day) and change over time.
 - **Daily rollup:** a `metric_daily` table (user, local date, metric, dimension → value) updated on
-  every write. Every stats query reads this small table, which keeps D1 reads and CPU low.
-- **Periods:** week, month (default), 3 months, 6 months, year. Buckets adjust automatically: days for
-  short periods, weeks or months for long ones, showing totals or daily averages.
-- **Chart primitives**, shared everywhere: bars/line against a target, progress bar or ring, sparkline,
-  calendar heatmap.
+  every write. Every stats query reads this small table, aggregated per bucket in SQL, which keeps D1
+  reads and CPU low.
+- **Periods:** calendar periods, paged with ‹ ›: week (Mon–Sun) and month (default) by day, 3 and 6
+  calendar months by week, 12 months by month. Sums show totals or daily averages; averages count every
+  elapsed day for `zero` metrics and only logged days for `unknown` ones.
+- **Chart primitives** (hand-written SVG), shared everywhere: bars against a target, line, sparkline,
+  calendar heatmap. Tap or slide to read a value; no hover.
 - **Views:**
   - Feature stats screens are presets (a list of metrics) over the same engine.
   - An **Overview** screen shows all features for the selected period on one shared time axis. Tapping
     a day shows that day across all features.
-- **MCP:** `list_metrics`, `get_metrics(metrics, period, bucket)`. One generic tool lets Claude analyse
-  across features.
+- **MCP:** `list_metrics`, `get_metrics(metrics, from, to, bucket)`, `get_progression(from, to)`,
+  `get_day(date)`. Generic tools let Claude analyse across features.
 
 ---
 
@@ -562,6 +566,31 @@ Overview: all features in one screen for the selected period, plus a day detail 
 
 MCP: `list_metrics`, `get_metrics` for cross-feature insights.
 
+**Notes (7a: engine, charts, workouts):**
+- One period for every stats screen (W / M / 3M / 6M / Y with ‹ ›), kept while moving between them;
+  the kind is remembered on the device.
+- Workouts stats (chart icon in the workouts header):
+  - workouts and working sets in the period against the plan so far (workouts per week and the weekly
+    set targets × elapsed weeks; current settings, so past periods use today's targets);
+  - timeline: a calendar of sets per day for a month, bars per day for a week, bars per week against
+    the weekly target for 3 and 6 months, the average week per month for a year;
+  - per muscle group: sets against its target so far and the strength trend;
+  - per exercise: a sparkline and the trend; tapping opens the exercise's progress (best e1RM per
+    session with the trend line, top sets, the sessions).
+- Strength trend: a least-squares line through each session's best estimated 1RM (Epley), as the %
+  change from the first to the last session in the period; needs 3+ sessions. Exercises done without
+  weight in most sessions use best reps (`exercise.best_reps`, backfilled by migration 0003). A muscle
+  group's trend is the mean of its primary exercises' trends.
+- Variants to pick on the phone: `stats.period` (selector in the footer or under the title),
+  `stats.progress` (sparkline rows or change bars).
+
+| MCP tool | Service function |
+|---|---|
+| `list_metrics` | the registry |
+| `get_metrics(metrics, from, to, bucket)` | `getMetrics` |
+| `get_progression(from, to)` | `getProgression` |
+| `get_day(date)` | `getDay` |
+
 ## Iteration 8: Offline-proof logging ✅
 
 Logging works with no signal (gym): mutations queue in IndexedDB and sync on reconnect, without
@@ -686,3 +715,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Focus energy restarts each day at wake; no carry-over. Rate precedence: unfocus, deep, moderate, baseline. Setting sleep before the wake time starts the day early. |
 | 2026-11-19 | Offline: an own outbox in IndexedDB instead of TanStack's paused mutations. Those pause only when the browser reports offline (iOS often reports online with no usable signal), are lost when a deploy clears the cache, and need every mutation registered globally. |
 | 2026-11-19 | Calves added as a minor muscle group. Library exercises added in later releases reach existing users: the exercise list inserts seed exercises whose key the user has none of. Each muscle group's category has its own default, so stored settings stay valid when a group is added. |
+| 2026-11-19 | Stats: hand-written SVG charts (no library); calendar periods paged back and forward; one aggregated query per stats request; strength progress as the trend of the best e1RM per session. |

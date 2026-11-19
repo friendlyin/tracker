@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { METRICS } from "../../shared/metrics/registry";
 import {
   type MetricRow,
@@ -14,6 +14,7 @@ const WORKOUT_METRICS = [
   METRICS.workingSets.id,
   METRICS.topSet.id,
   METRICS.e1rm.id,
+  METRICS.bestReps.id,
 ];
 
 /** Rebuilds the workout rows of `metric_daily` for one local date. Called after every workout write. */
@@ -43,12 +44,18 @@ export async function recomputeWorkoutDay(db: Db, userId: string, localDate: str
     db
       .select({
         exerciseId: workoutSet.exerciseId,
-        top: sql<number>`max(${workoutSet.weightKg})`,
-        e1rm: sql<number>`max(case when ${workoutSet.reps} = 1 then ${workoutSet.weightKg} else ${workoutSet.weightKg} * (1 + ${workoutSet.reps} / 30.0) end)`,
+        // Weighted sets only; null when every set was without weight.
+        top: sql<
+          number | null
+        >`max(case when ${workoutSet.weightKg} > 0 then ${workoutSet.weightKg} end)`,
+        e1rm: sql<
+          number | null
+        >`max(case when ${workoutSet.weightKg} > 0 then (case when ${workoutSet.reps} = 1 then ${workoutSet.weightKg} else ${workoutSet.weightKg} * (1 + ${workoutSet.reps} / 30.0) end) end)`,
+        reps: sql<number>`max(${workoutSet.reps})`,
       })
       .from(workoutSet)
       .innerJoin(workout, eq(workout.id, workoutSet.workoutId))
-      .where(and(dayFilter, eq(workoutSet.kind, "working"), gt(workoutSet.weightKg, 0)))
+      .where(and(dayFilter, eq(workoutSet.kind, "working")))
       .groupBy(workoutSet.exerciseId),
   ]);
 
@@ -63,16 +70,10 @@ export async function recomputeWorkoutDay(db: Db, userId: string, localDate: str
     });
   }
   for (const e of exerciseRows) {
-    rows.push({
-      metric: METRICS.topSet.id,
-      dimension: e.exerciseId,
-      value: e.top,
-    });
-    rows.push({
-      metric: METRICS.e1rm.id,
-      dimension: e.exerciseId,
-      value: e.e1rm,
-    });
+    const dimension = e.exerciseId;
+    if (e.top !== null) rows.push({ metric: METRICS.topSet.id, dimension, value: e.top });
+    if (e.e1rm !== null) rows.push({ metric: METRICS.e1rm.id, dimension, value: e.e1rm });
+    rows.push({ metric: METRICS.bestReps.id, dimension, value: e.reps });
   }
 
   await replaceMetrics(db, userId, localDate, WORKOUT_METRICS, rows);

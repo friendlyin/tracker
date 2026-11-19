@@ -31,6 +31,10 @@ const rollup = (db: Db, u: DayUser): ClosedDayRollup => ({
   write: (from, to) => writeAtCap(db, u, from, to),
 });
 
+/** Writes the closed-day rollups up to yesterday (stats read them). */
+export const finalizeWaterDays = (db: Db, u: DayUser, now = Date.now()) =>
+  finalizeClosedDays(db, u, rollup(db, u), now);
+
 function toDto(r: EntryRow): WaterEntryDto {
   return {
     id: r.id,

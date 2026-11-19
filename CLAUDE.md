@@ -58,6 +58,9 @@ Code map:
   (`shared/focus/model.ts`) are its configurations; `worker/services/levels.ts` finalises their
   closed-day rollups.
 - `shared/<feature>/`: zod schemas, DTO types (`types.ts`) and pure logic shared by PWA and Worker.
+- `shared/metrics/`: the metrics engine (registry, periods, series, progress);
+  `worker/services/stats.ts` reads it; `src/ui/charts/` draws it; `src/features/stats/` holds the
+  shared period and stats queries.
 - `src/routes/`: screens; `src/features/<feature>/`: query hooks and feature components; `src/ui/`: base
   components; `src/dev/variants.tsx`: `useVariant`.
 

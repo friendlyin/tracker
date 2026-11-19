@@ -9,6 +9,7 @@ import { handleMcp } from "./mcp";
 import { withOAuth } from "./oauth";
 import { focusRoutes } from "./routes/focus";
 import { nutritionRoutes } from "./routes/nutrition";
+import { statsRoutes } from "./routes/stats";
 import { waterRoutes } from "./routes/water";
 import { workoutRoutes } from "./routes/workouts";
 import { InvalidError, NotFoundError } from "./services/errors";
@@ -46,7 +47,8 @@ const api = new Hono<AppEnv>()
   .route("/", workoutRoutes)
   .route("/", nutritionRoutes)
   .route("/", waterRoutes)
-  .route("/", focusRoutes);
+  .route("/", focusRoutes)
+  .route("/", statsRoutes);
 
 api.onError((err, c) => {
   if (err instanceof NotFoundError) return c.json({ error: "not_found", what: err.message }, 404);

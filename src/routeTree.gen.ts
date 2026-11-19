@@ -20,10 +20,12 @@ import { Route as WaterSettingsRouteImport } from './routes/water/settings'
 import { Route as WorkoutsIndexRouteImport } from './routes/workouts/index'
 import { Route as WorkoutsNewRouteImport } from './routes/workouts/new'
 import { Route as WorkoutsSettingsRouteImport } from './routes/workouts/settings'
+import { Route as WorkoutsStatsRouteImport } from './routes/workouts/stats'
 import { Route as WorkoutsEditExerciseIdRouteImport } from './routes/workouts/edit.$exerciseId'
 import { Route as WorkoutsExerciseExerciseIdRouteImport } from './routes/workouts/exercise.$exerciseId'
 import { Route as WorkoutsGroupGroupRouteImport } from './routes/workouts/group.$group'
 import { Route as WorkoutsHistoryWorkoutIdRouteImport } from './routes/workouts/history.$workoutId'
+import { Route as WorkoutsProgressExerciseIdRouteImport } from './routes/workouts/progress.$exerciseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -80,6 +82,11 @@ const WorkoutsSettingsRoute = WorkoutsSettingsRouteImport.update({
   path: '/workouts/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkoutsStatsRoute = WorkoutsStatsRouteImport.update({
+  id: '/workouts/stats',
+  path: '/workouts/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkoutsEditExerciseIdRoute = WorkoutsEditExerciseIdRouteImport.update({
   id: '/workouts/edit/$exerciseId',
   path: '/workouts/edit/$exerciseId',
@@ -102,6 +109,12 @@ const WorkoutsHistoryWorkoutIdRoute =
     path: '/workouts/history/$workoutId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const WorkoutsProgressExerciseIdRoute =
+  WorkoutsProgressExerciseIdRouteImport.update({
+    id: '/workouts/progress/$exerciseId',
+    path: '/workouts/progress/$exerciseId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -111,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/water/settings': typeof WaterSettingsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/workouts/stats': typeof WorkoutsStatsRoute
   '/focus/': typeof FocusIndexRoute
   '/nutrition/': typeof NutritionIndexRoute
   '/water/': typeof WaterIndexRoute
@@ -119,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
   '/workouts/group/$group': typeof WorkoutsGroupGroupRoute
   '/workouts/history/$workoutId': typeof WorkoutsHistoryWorkoutIdRoute
+  '/workouts/progress/$exerciseId': typeof WorkoutsProgressExerciseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -128,6 +143,7 @@ export interface FileRoutesByTo {
   '/water/settings': typeof WaterSettingsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/workouts/stats': typeof WorkoutsStatsRoute
   '/focus': typeof FocusIndexRoute
   '/nutrition': typeof NutritionIndexRoute
   '/water': typeof WaterIndexRoute
@@ -136,6 +152,7 @@ export interface FileRoutesByTo {
   '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
   '/workouts/group/$group': typeof WorkoutsGroupGroupRoute
   '/workouts/history/$workoutId': typeof WorkoutsHistoryWorkoutIdRoute
+  '/workouts/progress/$exerciseId': typeof WorkoutsProgressExerciseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -146,6 +163,7 @@ export interface FileRoutesById {
   '/water/settings': typeof WaterSettingsRoute
   '/workouts/new': typeof WorkoutsNewRoute
   '/workouts/settings': typeof WorkoutsSettingsRoute
+  '/workouts/stats': typeof WorkoutsStatsRoute
   '/focus/': typeof FocusIndexRoute
   '/nutrition/': typeof NutritionIndexRoute
   '/water/': typeof WaterIndexRoute
@@ -154,6 +172,7 @@ export interface FileRoutesById {
   '/workouts/exercise/$exerciseId': typeof WorkoutsExerciseExerciseIdRoute
   '/workouts/group/$group': typeof WorkoutsGroupGroupRoute
   '/workouts/history/$workoutId': typeof WorkoutsHistoryWorkoutIdRoute
+  '/workouts/progress/$exerciseId': typeof WorkoutsProgressExerciseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -165,6 +184,7 @@ export interface FileRouteTypes {
     | '/water/settings'
     | '/workouts/new'
     | '/workouts/settings'
+    | '/workouts/stats'
     | '/focus/'
     | '/nutrition/'
     | '/water/'
@@ -173,6 +193,7 @@ export interface FileRouteTypes {
     | '/workouts/exercise/$exerciseId'
     | '/workouts/group/$group'
     | '/workouts/history/$workoutId'
+    | '/workouts/progress/$exerciseId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -182,6 +203,7 @@ export interface FileRouteTypes {
     | '/water/settings'
     | '/workouts/new'
     | '/workouts/settings'
+    | '/workouts/stats'
     | '/focus'
     | '/nutrition'
     | '/water'
@@ -190,6 +212,7 @@ export interface FileRouteTypes {
     | '/workouts/exercise/$exerciseId'
     | '/workouts/group/$group'
     | '/workouts/history/$workoutId'
+    | '/workouts/progress/$exerciseId'
   id:
     | '__root__'
     | '/'
@@ -199,6 +222,7 @@ export interface FileRouteTypes {
     | '/water/settings'
     | '/workouts/new'
     | '/workouts/settings'
+    | '/workouts/stats'
     | '/focus/'
     | '/nutrition/'
     | '/water/'
@@ -207,6 +231,7 @@ export interface FileRouteTypes {
     | '/workouts/exercise/$exerciseId'
     | '/workouts/group/$group'
     | '/workouts/history/$workoutId'
+    | '/workouts/progress/$exerciseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -217,6 +242,7 @@ export interface RootRouteChildren {
   WaterSettingsRoute: typeof WaterSettingsRoute
   WorkoutsNewRoute: typeof WorkoutsNewRoute
   WorkoutsSettingsRoute: typeof WorkoutsSettingsRoute
+  WorkoutsStatsRoute: typeof WorkoutsStatsRoute
   FocusIndexRoute: typeof FocusIndexRoute
   NutritionIndexRoute: typeof NutritionIndexRoute
   WaterIndexRoute: typeof WaterIndexRoute
@@ -225,6 +251,7 @@ export interface RootRouteChildren {
   WorkoutsExerciseExerciseIdRoute: typeof WorkoutsExerciseExerciseIdRoute
   WorkoutsGroupGroupRoute: typeof WorkoutsGroupGroupRoute
   WorkoutsHistoryWorkoutIdRoute: typeof WorkoutsHistoryWorkoutIdRoute
+  WorkoutsProgressExerciseIdRoute: typeof WorkoutsProgressExerciseIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -306,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkoutsSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workouts/stats': {
+      id: '/workouts/stats'
+      path: '/workouts/stats'
+      fullPath: '/workouts/stats'
+      preLoaderRoute: typeof WorkoutsStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workouts/edit/$exerciseId': {
       id: '/workouts/edit/$exerciseId'
       path: '/workouts/edit/$exerciseId'
@@ -334,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkoutsHistoryWorkoutIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workouts/progress/$exerciseId': {
+      id: '/workouts/progress/$exerciseId'
+      path: '/workouts/progress/$exerciseId'
+      fullPath: '/workouts/progress/$exerciseId'
+      preLoaderRoute: typeof WorkoutsProgressExerciseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -345,6 +386,7 @@ const rootRouteChildren: RootRouteChildren = {
   WaterSettingsRoute: WaterSettingsRoute,
   WorkoutsNewRoute: WorkoutsNewRoute,
   WorkoutsSettingsRoute: WorkoutsSettingsRoute,
+  WorkoutsStatsRoute: WorkoutsStatsRoute,
   FocusIndexRoute: FocusIndexRoute,
   NutritionIndexRoute: NutritionIndexRoute,
   WaterIndexRoute: WaterIndexRoute,
@@ -353,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkoutsExerciseExerciseIdRoute: WorkoutsExerciseExerciseIdRoute,
   WorkoutsGroupGroupRoute: WorkoutsGroupGroupRoute,
   WorkoutsHistoryWorkoutIdRoute: WorkoutsHistoryWorkoutIdRoute,
+  WorkoutsProgressExerciseIdRoute: WorkoutsProgressExerciseIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

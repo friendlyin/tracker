@@ -88,3 +88,8 @@ export const ArrowUpIcon = (p: P) => (
     <path d="M12 19V6M6.5 11.5 12 6l5.5 5.5" />
   </Svg>
 );
+export const ChartIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M5 20V13M10 20V6M15 20v-9M20 20V9" />
+  </Svg>
+);

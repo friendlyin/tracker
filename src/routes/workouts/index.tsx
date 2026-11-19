@@ -5,7 +5,7 @@ import { fmtClock, fmtDay, fmtSets } from "../../lib/format";
 import { useConfirm } from "../../lib/useConfirm";
 import { useNow } from "../../lib/useNow";
 import { Button } from "../../ui/Button";
-import { ChevronIcon, SlidersIcon } from "../../ui/icons";
+import { ChartIcon, ChevronIcon, SlidersIcon } from "../../ui/icons";
 import { IconLink, Screen } from "../../ui/Screen";
 
 export const Route = createFileRoute("/workouts/")({ component: Workouts });
@@ -37,9 +37,14 @@ function Workouts() {
       back="/"
       title="Workouts"
       right={
-        <IconLink to="/workouts/settings" label="Workout settings">
-          <SlidersIcon />
-        </IconLink>
+        <>
+          <IconLink to="/workouts/stats" label="Workout stats">
+            <ChartIcon />
+          </IconLink>
+          <IconLink to="/workouts/settings" label="Workout settings">
+            <SlidersIcon />
+          </IconLink>
+        </>
       }
       footer={footer}
     >

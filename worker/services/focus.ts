@@ -168,6 +168,10 @@ const rollup = (db: Db, u: DayUser): ClosedDayRollup => ({
   write: (from, to) => writeDayStats(db, u, from, to),
 });
 
+/** Writes the closed-day rollups up to yesterday (stats read them). */
+export const finalizeFocusDays = (db: Db, u: DayUser, now = Date.now()) =>
+  finalizeClosedDays(db, u, rollup(db, u), now);
+
 /** A day's sessions and the next day's early start (sleep set before the wake) shape its stats. */
 const afterWrite = (db: Db, u: DayUser, ...dates: string[]) =>
   Promise.all([...new Set(dates)].map((d) => refinalize(db, u, rollup(db, u), addDays(d, -1), d)));
