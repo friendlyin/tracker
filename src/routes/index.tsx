@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import type { NutritionDayStatusDto } from "../../shared/nutrition/types";
 import type { HomeDto } from "../../shared/profile";
-import { useVariant } from "../dev/variants";
 import { kcalLine, proteinLine } from "../features/nutrition/Summary";
 import { useHome } from "../features/profile";
 import { fmtSets } from "../lib/format";
@@ -25,37 +24,8 @@ interface Widget {
   live?: boolean;
 }
 
-/** Variant "kcal": kcal left leads, protein underneath. */
-function NutritionKcal({ s }: { s: NutritionDayStatusDto }) {
-  const k = kcalLine(s);
-  const p = proteinLine(s);
-  return (
-    <div>
-      <div
-        className={cx(
-          "num text-[40px] leading-none font-semibold",
-          k.tone === "warn" && "text-warn",
-        )}
-      >
-        {k.value}
-      </div>
-      <div className="mt-1 text-[13px] text-ink-2">{k.unit}</div>
-      <div
-        className={cx(
-          "num mt-2 flex items-center gap-1 text-[13px]",
-          p.tone === "ok" ? "text-ok" : "text-ink-2",
-        )}
-      >
-        {p.value} {p.unit}
-        {p.tone === "ok" && <CheckIcon className="size-4" />}
-      </div>
-      <ProgressBar className="mt-3" value={k.consumed} max={k.target} tone={k.tone} />
-    </div>
-  );
-}
-
-/** Variant "split": kcal and protein as two equal numbers with their own bars. */
-function NutritionSplit({ s }: { s: NutritionDayStatusDto }) {
+/** kcal and protein as two equal numbers with their own bars. */
+function NutritionTile({ s }: { s: NutritionDayStatusDto }) {
   return (
     <div className="space-y-3">
       {[kcalLine(s), proteinLine(s)].map((l) => (
@@ -83,7 +53,7 @@ function NutritionSplit({ s }: { s: NutritionDayStatusDto }) {
   );
 }
 
-function widgets(home: HomeDto | undefined, Nutrition: typeof NutritionKcal): Widget[] {
+function widgets(home: HomeDto | undefined): Widget[] {
   const w = home?.workouts;
   const n = home?.nutrition;
   return [
@@ -100,7 +70,7 @@ function widgets(home: HomeDto | undefined, Nutrition: typeof NutritionKcal): Wi
       key: "nutrition",
       label: "Nutrition",
       to: "/nutrition",
-      body: n ? <Nutrition s={n} /> : undefined,
+      body: n ? <NutritionTile s={n} /> : undefined,
       value: n ? undefined : "–",
     },
     { key: "water", label: "Water" },
@@ -172,7 +142,6 @@ const todayFmt = new Intl.DateTimeFormat(undefined, {
 
 function Home() {
   const home = useHome();
-  const Nutrition = useVariant("home.nutrition", { kcal: NutritionKcal, split: NutritionSplit });
   return (
     <div className="min-h-dvh px-4">
       <header className="pt-safe flex h-[calc(56px+max(env(safe-area-inset-top),12px))] items-center justify-between">
@@ -181,7 +150,7 @@ function Home() {
           <PersonIcon />
         </IconLink>
       </header>
-      <Tiles items={widgets(home.data, Nutrition)} />
+      <Tiles items={widgets(home.data)} />
     </div>
   );
 }

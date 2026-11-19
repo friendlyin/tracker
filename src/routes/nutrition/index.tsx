@@ -4,9 +4,8 @@ import { z } from "zod";
 import { localDateSchema } from "../../../shared/nutrition/schemas";
 import type { MealDto, NutritionDayDto } from "../../../shared/nutrition/types";
 import { addDays } from "../../../shared/time";
-import { useVariant } from "../../dev/variants";
 import { todayLocal, useNutritionDay, useSetDayType } from "../../features/nutrition/api";
-import { BarsSummary, BigSummary, RowsSummary } from "../../features/nutrition/Summary";
+import { Summary } from "../../features/nutrition/Summary";
 import { fmtDay, fmtInt, fmtTime } from "../../lib/format";
 import { cx } from "../../ui/cx";
 import { ChevronIcon, SlidersIcon } from "../../ui/icons";
@@ -131,11 +130,6 @@ function NutritionScreen() {
   const today = todayLocal();
   const date = search.date && search.date < today ? search.date : today;
   const { data } = useNutritionDay(date);
-  const Summary = useVariant("nutrition.summary", {
-    bars: BarsSummary,
-    big: BigSummary,
-    rows: RowsSummary,
-  });
 
   return (
     <Screen

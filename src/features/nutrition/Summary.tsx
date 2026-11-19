@@ -65,29 +65,8 @@ function Macros({ s }: { s: NutritionDayStatusDto }) {
   );
 }
 
-/** Variant "bars": one block per target, number left, consumed/target right, bar below. */
-export function BarsSummary({ s }: { s: NutritionDayStatusDto }) {
-  return (
-    <div>
-      {[kcalLine(s), proteinLine(s)].map((l) => (
-        <div key={l.unit} className="mt-5 first:mt-2">
-          <div className="flex items-end justify-between gap-3">
-            <div className="flex items-baseline gap-2">
-              <Value line={l} className="text-[40px] leading-none" />
-              <span className="text-[15px] text-ink-2">{l.unit}</span>
-            </div>
-            <span className="num text-[15px] text-ink-2">{ofTarget(l)}</span>
-          </div>
-          <ProgressBar className="mt-3" value={l.consumed} max={l.target} tone={l.tone} />
-        </div>
-      ))}
-      <Macros s={s} />
-    </div>
-  );
-}
-
-/** Variant "big": kcal and protein side by side with large remaining numbers. */
-export function BigSummary({ s }: { s: NutritionDayStatusDto }) {
+/** kcal and protein side by side with large remaining numbers, then fat and carbs. */
+export function Summary({ s }: { s: NutritionDayStatusDto }) {
   return (
     <div>
       <div className="mt-2 grid grid-cols-2 gap-4">
@@ -101,51 +80,6 @@ export function BigSummary({ s }: { s: NutritionDayStatusDto }) {
         ))}
       </div>
       <Macros s={s} />
-    </div>
-  );
-}
-
-/** Variant "rows": a compact table, macros included. */
-export function RowsSummary({ s }: { s: NutritionDayStatusDto }) {
-  const k = kcalLine(s);
-  const p = proteinLine(s);
-  const rows = [
-    { label: "kcal", left: k, consumed: fmtInt(k.consumed), target: fmtInt(k.target) },
-    {
-      label: "Protein",
-      left: p,
-      consumed: `${fmtInt(p.consumed)} g`,
-      target: `${fmtInt(p.target)} g`,
-    },
-    { label: "Fat", consumed: `${fmtInt(s.totals.fatG)} g` },
-    { label: "Carbs", consumed: `${fmtInt(s.totals.carbsG)} g` },
-  ];
-  return (
-    <div className="mt-1">
-      {rows.map((r) => (
-        <div key={r.label} className="flex min-h-13 items-center gap-3 border-b border-line">
-          <span className="w-20 text-[15px] text-ink-2">{r.label}</span>
-          <span className="num flex-1 text-[17px]">
-            {r.consumed}
-            {r.target && <span className="text-ink-3"> / {r.target}</span>}
-          </span>
-          {r.left && (
-            <span className={cx("num text-[22px] font-semibold", toneText(r.left.tone))}>
-              {r.left.tone === "ok" ? (
-                <CheckIcon />
-              ) : (
-                <>
-                  {r.left.value}
-                  <span className="text-[13px] font-normal text-ink-3">
-                    {" "}
-                    {r.left.unit.endsWith("over") ? "over" : "left"}
-                  </span>
-                </>
-              )}
-            </span>
-          )}
-        </div>
-      ))}
     </div>
   );
 }

@@ -15,7 +15,7 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 0 | Foundation | ✅ |
 | 1 | Platform base (local) | ✅ |
 | 2 | Workouts | ✅ |
-| 3 | Nutrition + tracking engine + local MCP server | ✅ (variant pick open) |
+| 3 | Nutrition + tracking engine + local MCP server | ✅ |
 | 4 | Water + level engine | next |
 | 5 | Focus energy | |
 | 6 | Deploy to Cloudflare, login, connect Claude | |
@@ -264,7 +264,7 @@ day's budget and the meals.
     `archive_exercise`), plus `get_workout_settings` / `set_workout_settings`.
 - **Flow:** photo → Claude estimates → `log_meal` → Claude answers with what is left today.
 
-**Status:** done (2026-11-19). The variant picks are still open.
+**Status:** done (2026-11-19).
 
 **Implementation notes**
 - Meals are entries of the `meal` tracker: kcal in `entry.value`, name, macros and items in
@@ -285,10 +285,9 @@ day's budget and the meals.
   - Domain errors (not found, invalid) come back as tool errors.
 - Home and nutrition queries refetch every time the app opens or regains focus, because Claude changes
   the data from outside the app.
-- Design variants to pick:
-  - `nutrition.summary`: **bars** (number left, consumed / target, bar), **big** (kcal and protein side by
-    side), **rows** (compact table including fat and carbs).
-  - `home.nutrition`: **kcal** (kcal left leads, protein below) or **split** (two numbers with bars).
+- Design variants chosen (2026-11-19): nutrition summary **big** (kcal and protein side by side with
+  large numbers), home tile **split** (kcal and protein as two equal numbers with bars). Rejected:
+  summary bars / compact rows, kcal-led home tile.
 
 ## Iteration 4: Water (+ level engine)
 
@@ -471,3 +470,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Meals are logged only through Claude (MCP); the app shows them read-only. The app keeps the day-type toggle and a targets screen. Meal photos are never stored. |
 | 2026-11-19 | Tracking engine: system trackers are defined in code, all entries share one `entry` table; no `tracker` table and no generic entry MCP tools until user-defined trackers exist. |
 | 2026-11-19 | Nutrition targets are per day type (kcal and protein for workout and rest days). Protein above target counts as reached; only kcal above target is a warning. |
+| 2026-11-19 | Design: nutrition summary with big side-by-side numbers; home nutrition tile with kcal and protein as two equal numbers. |
