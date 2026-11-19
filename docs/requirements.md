@@ -15,8 +15,8 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 0 | Foundation | ✅ |
 | 1 | Platform base (local) | ✅ |
 | 2 | Workouts | ✅ |
-| 3 | Nutrition + tracking engine + local MCP server | next |
-| 4 | Water + level engine | |
+| 3 | Nutrition + tracking engine + local MCP server | ✅ (variant pick open) |
+| 4 | Water + level engine | next |
 | 5 | Focus energy | |
 | 6 | Deploy to Cloudflare, login, connect Claude | |
 | 7 | Stats engine and Overview | |
@@ -70,8 +70,15 @@ One model for "things the user logs".
   - **check:** habit done
   - **choice/scale:** sleep quality, mood
 - Shared UI building blocks: quick-log buttons, timer, entry list with edit/undo.
-- Shared MCP tools: `log_entry`, `update_entry`, `delete_entry`, `list_entries`. Domain-named wrappers
-  such as `log_meal` and `log_water` make it obvious to Claude what to call.
+- MCP tools are domain-named (`log_meal`, later `log_water`), so it is obvious to Claude what to call.
+  Generic `log_entry` / `list_entries` tools come only with user-defined trackers, so Claude never has
+  two ways to log the same thing.
+- **Implementation (iteration 3):**
+  - System trackers are defined in code (`shared/tracking/trackers.ts`): key, kind, unit, a zod schema
+    for `data`, and a function that rolls one day's entries into `metric_daily` rows.
+  - There is no `tracker` table until user-defined trackers exist.
+  - All entries live in one `entry` table. `worker/services/entries.ts` provides the generic
+    log/update/delete/list functions and keeps the rollups current.
 
 Workouts keep their own tables (exercises, sets, warm-ups need more structure), but they feed the same
 metrics engine.
@@ -186,8 +193,8 @@ Weekly-volume-driven gym logging where exercises are chosen in the gym.
     contributions), `archive_exercise`
 
 **Status:** done (2026-11-19). The MCP tools above are
-implemented as service functions in `worker/services/workouts.ts` and become MCP tools with the MCP
-server in iteration 3:
+implemented as service functions in `worker/services/workouts.ts`; since iteration 3 they are MCP tools
+(`worker/mcp/tools/workouts.ts`):
 
 | MCP tool | Service function |
 |---|---|
@@ -220,28 +227,68 @@ server in iteration 3:
   **grid** (2-column cells per muscle group), set entry **steppers** (− / + around kg and reps).
   Rejected: home rows / lead, budget bars / big numbers, on-screen keypad.
 
-## Iteration 3: Nutrition + tracking engine + local MCP server
+## Iteration 3: Nutrition + tracking engine + local MCP server ✅
 
-Meals are logged mostly by Claude from meal photos; the app shows the daily budget.
+Meals are logged by Claude (MCP), mostly from meal photos. The app has no meal input: it shows the
+day's budget and the meals.
 
-- **Targets** (settings, also via MCP): workout day 2600 kcal, rest day 2200 kcal, protein 180 g every
-  day. Fat and carbs are tracked but have no target.
-- **Day type:** set automatically to "workout" when a workout is logged that day; manual override with a
-  toggle on the nutrition screen. It decides which targets apply.
-- **Today view:** consumed vs target and remaining for kcal and protein; fat and carbs consumed; list of
-  meals (edit/delete, quick manual add).
-- **Home widget:** remaining kcal and protein for today.
-- **MCP server (local):** `/mcp` endpoint with all tools so far (workouts + nutrition). Locally it uses
-  the dev user without OAuth, so Claude Code on this computer can connect to `http://localhost:5173/mcp`
-  and the photo → meal flow can be tried before the deploy. OAuth and claude.ai come in iteration 6.
+- **Targets** (settings screen in the app, also via MCP): workout day 2600 kcal, rest day 2200 kcal,
+  protein 180 g on both. Fat and carbs are tracked but have no target.
+- **Day type:** "workout" when a workout is dated that day, otherwise "rest". A manual override (toggle on
+  the nutrition screen, or `set_day_type`) wins; "Auto" removes it. It decides which targets apply.
+- **Nutrition screen:**
+  - kcal and protein: consumed / target, plus what is left.
+  - Over the kcal target shows "+150 kcal over" in the warning colour. Protein at or above target is
+    "reached" (ok colour), because going over is fine.
+  - Fat and carbs consumed.
+  - The meals, read-only (time, name, kcal, protein); tapping one shows its items.
+  - Previous and next day in the footer.
+- **Home widget:** kcal left (or over) and protein left for today.
+- **Photos are never stored** or sent to the app. Claude sends only the estimated numbers.
+- **MCP server (local):** `/mcp` with all tools so far (workouts and nutrition).
+  - Locally it acts as the dev user without OAuth (localhost and private network addresses only).
+    Connect with `claude mcp add --transport http tracker-dev http://localhost:5173/mcp`.
+  - In production it answers 401 until OAuth lands in iteration 6.
 - **MCP tools:**
-  - meals: `log_meal` (name, time, kcal, protein, fat, carbs, optional item breakdown), `update_meal`,
-    `delete_meal`, `list_meals(date)`
-  - day: `get_day_summary(date)` (totals, targets, remaining), `set_day_type`
-  - targets: `get_nutrition_targets`, `set_nutrition_targets`
-- **Flow:** photo → Claude estimates → Claude calls `log_meal` → Claude answers with the day's running
-  total from `get_day_summary`.
-- Introduces the tracking engine (meal is its first tracker).
+  - meals:
+    - `log_meal`: name, kcal and proteinG required; fatG, carbsG, items, time and note optional. Returns
+      the meal and the day's totals, so the photo flow is one call.
+    - `update_meal`, `delete_meal`, `list_meals(date | from–to)`.
+  - day:
+    - `get_day_summary(date)`: totals, day type, targets, remaining, over, meals.
+    - `list_day_summaries(from, to)`: daily totals and the targets that applied.
+    - `set_day_type(date, workout | rest | auto)`.
+  - targets: `get_nutrition_targets`, `set_nutrition_targets`.
+  - workouts: the iteration 2 tools (`get_weekly_volume`, `list_workouts`, `get_workout`,
+    `get_exercise_history`, `log_workout`, `list_exercises`, `create_exercise`, `update_exercise`,
+    `archive_exercise`), plus `get_workout_settings` / `set_workout_settings`.
+- **Flow:** photo → Claude estimates → `log_meal` → Claude answers with what is left today.
+
+**Status:** done (2026-11-19). The variant picks are still open.
+
+**Implementation notes**
+- Meals are entries of the `meal` tracker: kcal in `entry.value`, name, macros and items in
+  `entry.data`.
+- Day overrides are stored in `day_type`; days without an override follow workouts.
+- Rollups in `metric_daily`:
+  - `nutrition.kcal`, `nutrition.protein_g`, `nutrition.fat_g` and `nutrition.carbs_g`.
+  - `nutrition.kcal_target` and `nutrition.protein_target` are written only for days with meals, so
+    stats compare against the target that applied then.
+- When rollups change:
+  - Changing the targets updates today's rollup only.
+  - Creating or deleting a workout refreshes that day's targets, since it can change the automatic day type.
+- MCP:
+  - Stateless Streamable HTTP via `@modelcontextprotocol/sdk`: one server per request, bound to the
+    authenticated user.
+  - Times are exchanged as local ISO 8601 with offset; "today" follows the user's latest timezone from
+    the app.
+  - Domain errors (not found, invalid) come back as tool errors.
+- Home and nutrition queries refetch every time the app opens or regains focus, because Claude changes
+  the data from outside the app.
+- Design variants to pick:
+  - `nutrition.summary`: **bars** (number left, consumed / target, bar), **big** (kcal and protein side by
+    side), **rows** (compact table including fat and carbs).
+  - `home.nutrition`: **kcal** (kcal left leads, protein below) or **split** (two numbers with bars).
 
 ## Iteration 4: Water (+ level engine)
 
@@ -421,3 +468,6 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | A new user row is created on first login with a valid Access token; the Access allowlist is the only gate. |
 | 2026-11-19 | Design: home tiles, two-column budget grid, stepper set entry. |
 | 2026-11-19 | Build nutrition, water and focus locally first; deploy, Access login and Claude OAuth move to iteration 6. The MCP server is built in iteration 3 and used locally until then. |
+| 2026-11-19 | Meals are logged only through Claude (MCP); the app shows them read-only. The app keeps the day-type toggle and a targets screen. Meal photos are never stored. |
+| 2026-11-19 | Tracking engine: system trackers are defined in code, all entries share one `entry` table; no `tracker` table and no generic entry MCP tools until user-defined trackers exist. |
+| 2026-11-19 | Nutrition targets are per day type (kcal and protein for workout and rest days). Protein above target counts as reached; only kcal above target is a warning. |

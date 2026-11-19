@@ -164,7 +164,14 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
 
 ## 4. MCP server
 
-- Endpoint: `https://<app-host>/mcp` (Streamable HTTP).
+- Endpoint: `https://<app-host>/mcp` (Streamable HTTP, stateless). `worker/mcp/index.ts` builds a
+  server per request with `@modelcontextprotocol/sdk`, bound to the authenticated user. Tools in
+  `worker/mcp/tools/` are thin wrappers over `worker/services/`. No Durable Object is needed.
+- Locally (`pnpm dev`) it acts as the dev user: `claude mcp add --transport http tracker-dev
+  http://localhost:5173/mcp`. In production it answers 401 until OAuth for MCP clients is added
+  (iteration 6).
+- Times are exchanged as local ISO 8601 with offset. The SDK's default schema validator (Ajv) compiles
+  with `new Function`, which Workers forbid, so the server uses the `@cfworker/json-schema` validator.
 - Connect from claude.ai: Settings → Connectors → Add custom connector → paste the URL. It works on
   Claude mobile once it is added on the web.
 - Connect from Claude Code: `claude mcp add --transport http tracker https://<app-host>/mcp`.
@@ -199,9 +206,11 @@ The three shared engines (tracking, level, metrics) are described in
 - **Users**: `user` (id, email, name, timezone, wake_time, sleep_time). Plus Better Auth tables only if
   Option 2 is chosen.
 - **Settings**: `user_setting` (user, feature key → JSON), validated by a zod schema per feature.
-- **Tracking engine**: `tracker` (key, kind, unit, config JSON; system or user-defined) and `entry`
-  (tracker, occurred_at, ended_at, tz, local_date, value, duration_min, tags, note, data JSON, source).
-  Meals, water, focus sessions, unfocus, sleep quality, habits and mood are all entries.
+- **Tracking engine**: `entry` (tracker key, occurred_at, ended_at, tz, local_date, value, note, data
+  JSON, source app/mcp). Tracker definitions (kind, unit, data schema, rollup) are code in
+  `shared/tracking/trackers.ts`; a `tracker` table is added only with user-defined trackers. Tags are
+  added when a tracker needs them. Meals, water, focus sessions, unfocus, sleep quality, habits and mood
+  are all entries.
 - **Level engine**: no tables. It is a pure simulation over entries + config in `shared/`.
 - **Metrics engine**: `metric_daily` (user, local_date, metric, dimension, value), updated on every
   write and indexed by (user, metric, local_date).
@@ -216,7 +225,11 @@ The three shared engines (tracking, level, metrics) are described in
   - weekly volume is computed in SQL from sets (cheap at this size); `metric_daily` holds
     `workouts.count`, `workouts.working_sets` per group, `exercise.top_set_kg` and `exercise.e1rm_kg`
     per exercise for the stats engine
-- **Nutrition**: `day_type` (local_date → workout/rest, auto or manual). Targets live in settings.
+- **Nutrition**: meals are `meal` entries (kcal in `value`; name, protein/fat/carbs and items in `data`).
+  `day_type` holds manual overrides only (local_date → workout/rest); other days follow workouts.
+  Targets per day type live in `user_setting` key `nutrition`. `metric_daily` holds `nutrition.kcal`,
+  `nutrition.protein_g`, `nutrition.fat_g`, `nutrition.carbs_g` and the targets that applied
+  (`nutrition.kcal_target`, `nutrition.protein_target`).
 - **Later**: `whoop_connection` (tokens, encrypted) and `whoop_cycle` / `whoop_sleep` /
   `whoop_recovery` / `whoop_workout`.
 

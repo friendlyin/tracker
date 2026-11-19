@@ -7,14 +7,15 @@ photo, read your history and give you insights. The app itself contains no AI.
 Built for one person or a household: each person has their own account and sees only their own data.
 
 > **Status: early development.** Features are built in iterations (see [the plan](docs/requirements.md)).
-> Usable so far: login, the home screen and workouts (✅).
+> Usable so far: the home screen, workouts and nutrition (✅), and Claude Code on your computer
+> through the local MCP server.
 
 ## Features (planned)
 
 | Feature | What it does | Iteration |
 |---|---|---|
 | Workouts ✅ | Weekly sets per muscle group (major/minor targets, fractional credit for secondary muscles). You choose exercises in the gym, see your previous result instantly, and log warm-up and working sets. | 2 |
-| Nutrition | Daily kcal / protein budget with workout-day and rest-day targets. Meals logged by Claude from a photo, or by hand. | 3 |
+| Nutrition ✅ | Daily kcal / protein budget with workout-day and rest-day targets. Claude logs meals from a photo; the app shows what is left. | 3 |
 | Claude (MCP) | Claude reads and writes your data: log meals, adjust targets, analyse trends. | 3 (local), 6 (claude.ai) |
 | Water | Water "debt" builds up through the day (slower at night) and is paid off by drinking. The app warns when you've been behind for too long. | 4 |
 | Focus energy | Focus energy drains with work and information intake, refills with deliberate unfocus and sleep. The app prompts you to unfocus before you run out. | 5 |
@@ -85,6 +86,16 @@ On any other host that variable is ignored and requests without a valid Access t
 To try it on your phone before deploying: run `pnpm dev --host`, then open the printed network address
 (`http://192.168.x.x:5173`) on the phone, on the same Wi-Fi. The dev user is also accepted on private
 network addresses. Installing as a home-screen app needs HTTPS, so that waits for the deploy.
+
+**Claude Code against the local app.** While `pnpm dev` runs, the MCP server is at
+`http://localhost:5173/mcp` and acts as the dev user (no login). Connect Claude Code once:
+
+```bash
+claude mcp add --transport http tracker-dev http://localhost:5173/mcp
+```
+
+Then ask it, for example, to log a meal from a photo. Photos are never sent to the app; Claude sends the
+estimated numbers. claude.ai and the Claude apps need the deployed app with OAuth (iteration 6).
 
 | Command | |
 |---|---|
