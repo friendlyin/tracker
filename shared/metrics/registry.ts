@@ -47,4 +47,9 @@ export const METRICS = {
     aggregation: "sum",
     better: "none",
   },
+  waterIntake: { id: "water.intake_ml", unit: "ml", aggregation: "sum", better: "higher" },
+  /** The target that applied that day; written for days with water entries. */
+  waterTarget: { id: "water.target_ml", unit: "ml", aggregation: "sum", better: "none" },
+  /** Awake minutes with pending water at the cap; written once the day is over. */
+  waterAtCap: { id: "water.at_cap_min", unit: "min", aggregation: "sum", better: "lower" },
 } as const satisfies Record<string, MetricDef>;

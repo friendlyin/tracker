@@ -23,3 +23,15 @@ describe("meal tracker", () => {
     expect(TRACKERS.meal.metrics([])).toEqual([]);
   });
 });
+
+describe("water tracker", () => {
+  it("sums a day's water", () => {
+    const at = { occurredAt: 0, endedAt: null, data: {} };
+    expect(
+      TRACKERS.water.metrics([
+        { ...at, value: 250 },
+        { ...at, value: 500 },
+      ]),
+    ).toEqual([{ metric: "water.intake_ml", value: 750 }]);
+  });
+});

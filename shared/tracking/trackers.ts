@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { METRICS } from "../metrics/registry";
 import { type MealData, mealDataSchema } from "../nutrition/schemas";
 import { sumMeals } from "../nutrition/summary";
+import { type WaterData, waterDataSchema } from "../water/schemas";
 
 // Tracking engine: every "thing the user logs" is an entry of a tracker. Trackers are defined in code
 // (system trackers); user-defined trackers would add a table later. Each tracker validates its
@@ -52,7 +53,21 @@ const meal: TrackerDef<MealData> = {
   },
 };
 
-export const TRACKERS = { meal } as const;
+const water: TrackerDef<WaterData> = {
+  key: "water",
+  kind: "quantity",
+  unit: "ml",
+  data: waterDataSchema,
+  metricIds: [METRICS.waterIntake.id],
+  metrics(entries) {
+    if (entries.length === 0) return [];
+    return [
+      { metric: METRICS.waterIntake.id, value: entries.reduce((n, e) => n + (e.value ?? 0), 0) },
+    ];
+  },
+};
+
+export const TRACKERS = { meal, water } as const;
 
 export type TrackerKey = keyof typeof TRACKERS;
 export type TrackerData<K extends TrackerKey> =
