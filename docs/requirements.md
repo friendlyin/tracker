@@ -17,8 +17,8 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 2 | Workouts | ✅ |
 | 3 | Nutrition + tracking engine + local MCP server | ✅ |
 | 4 | Water + level engine | ✅ |
-| 5 | Focus energy | next |
-| 6 | Deploy to Cloudflare, login, connect Claude | |
+| 5 | Focus energy | design pick |
+| 6 | Deploy to Cloudflare, login, connect Claude | next |
 | 7 | Stats engine and Overview | |
 | 8 | Offline-proof logging | |
 | 9 | WHOOP | |
@@ -114,8 +114,21 @@ and sleep raise it. Both are configurations of this one engine.
   - `firstReach`.
 - The engine has no tables: it runs on every read over the entries and settings, in the Worker and in
   the PWA.
-- Drift that depends on active sessions, response curves and daily ceilings are added in iteration 5,
-  when focus energy needs them.
+
+**Extensions (iteration 5, for focus energy):**
+- **Spans:** entries can run for a while (`spans: {from, to, kind}`). The rate takes the phase and the
+  set of active span kinds, so drift depends on what is happening.
+- **Response curves:** a rate can be affine in the level (`{base, perLevel}`, dL/dt = base +
+  perLevel × L).
+  - It is solved in closed form, including the time a bound is hit.
+  - Curved stretches get a point every 5 minutes, so the timeline stays piecewise linear and the
+    helpers still apply.
+- **Daily ceiling:** a feature that restarts each day builds its model per day, with `max` set to that
+  day's ceiling. No extra engine concept is needed.
+- **New helpers:** `firstFall` (for forecasts) and `minLevel`.
+- **Shared finalisation:** rollups that keep changing while a day is open are written once the day is
+  over. `worker/services/levels.ts` handles this for any level feature: a closed day is written on the
+  first read of a new day, at most 14 days back, and a write to a finalised day writes it again.
 
 ### Metrics and stats engine (rollups from iteration 2; full UI in iteration 7)
 
@@ -378,7 +391,7 @@ logged in the app (and by Claude).
   - Rejected: a water screen led by what is due (with or without a curve of the day), and a home tile
     led by the total.
 
-## Iteration 5: Focus energy
+## Iteration 5: Focus energy (design pick pending)
 
 The problem: knowledge work often means long stretches of focus and information intake without
 deliberate unfocus, and the need for a break is noticed only when already exhausted. The app models a **focus energy** level and prompts for unfocus *before* it runs
@@ -431,12 +444,71 @@ out. It is a second configuration of the level engine.
   energy, time below each threshold.
 
 **MCP**
-- state: `get_focus_state`
-- logging: `log_focus_session` (tier deep / moderate, optional tag), `start_focus` / `stop_focus`
-  (with tier), `log_unfocus`, `set_sleep_quality`
+- state: `get_focus_state` (energy, ceiling, sleep, state, the running timer, `next`, today's
+  minutes)
+- logging:
+  - `log_focus_session(tier deep | moderate, minutes, time?, tag?, id?)` and `log_unfocus(minutes,
+    time?, id?)`, for sessions logged afterwards;
+  - `start_focus(kind deep | moderate | unfocus, tag?)` and `stop_focus(time?)`, for timers;
+  - `set_sleep_quality(quality, date?)`.
+- entries: `list_focus(date | from–to)`, `update_focus_entry` and `delete_focus_entry`
 - settings: `get_focus_settings`, `set_focus_settings`
 
 Web Push reminders (for focus and water) are in the backlog.
+
+**Decided details**
+- **Rates:** only the first rule that applies counts, in this order:
+  - unfocus restores 12 + 0.48 × energy per hour (1.0 × (0.2 + 0.8 × L/100) per minute);
+  - deep focus drains 12 per hour;
+  - moderate focus drains 6 per hour;
+  - the awake baseline drains 3 per hour;
+  - asleep, nothing changes.
+
+  Overlapping sessions therefore take the higher drain, and unfocus pauses the drain.
+- **Day start:** each day starts fresh at the wake time, from the start energy for that day's sleep.
+  - Setting sleep before the wake time starts the day at that tap, and counts as awake.
+  - Until sleep is set, the default (ok: start 85, ceiling 90) is assumed, and the home tile asks for
+    it.
+- **One timer at a time:** starting a timer stops the running one. A timer stopped within a minute was
+  a mis-tap and is removed.
+- **Forecast:** `next` is the next threshold crossed if the current activity continues, for example
+  "↓ 40 in 1 h 20", or "↑ 40 in 12 min" during unfocus.
+- **Home tile:**
+  - energy, out of the day's ceiling;
+  - the running timer;
+  - one button that starts deep focus or stops whatever is running; until sleep is set, three sleep
+    buttons take its place.
+  - Suggest colours the number, recommend outlines the tile, urgent fills it with the warning colour.
+- **Focus screen:**
+  - the sleep picker, which stays changeable;
+  - energy with the forecast, and today's curve with the threshold lines;
+  - today's minutes per tier;
+  - the day's sessions; tap one to change its start, length or tag, or delete it;
+  - in the footer: the running timer with Stop, start buttons for deep, moderate (pick a tag) and
+    unfocus, and "+" to add a session afterwards;
+  - settings.
+- **Metrics:**
+  - for every day: `focus.deep_min`, `focus.deep_sessions`, `focus.moderate_min` (dimension: tag),
+    `focus.unfocus_min` and `sleep.quality` (3 good, 2 ok, 1 bad);
+  - for closed days with sessions or sleep set: `focus.min_energy`, `focus.low_suggest_min`,
+    `focus.low_recommend_min` and `focus.low_urgent_min` (minutes at or below each threshold, from the
+    day's start until the sleep time or the end of a later session).
+
+**Implementation notes**
+- Two trackers:
+  - `focus` (session): the start is in `occurred_at` and the end in `ended_at` (null while running);
+    the kind and tag are in `data`;
+  - `sleep` (choice): one entry per local date, value 3 / 2 / 1.
+- No new table and no migration.
+- The simulation is `shared/focus/model.ts`. Like water, the API returns its inputs, and the PWA runs
+  it again every minute (every 15 s while a timer runs) and after optimistic writes.
+- Running timers are always loaded, whatever day they started on.
+- The closed-day stats are finalised through the shared `levels.ts`. The last finalised date is in
+  `user_setting` key `focus.finalized`.
+- **Design variants** (to pick on the phone):
+  - `focus.summary`: number with the curve below, a curve-led layout with the number top right, or
+    number with a 0–100 bar and threshold ticks;
+  - `home.focus`: energy with a bar, or energy with the forecast line.
 
 ## Iteration 6: Deploy to Cloudflare, login, connect Claude
 
@@ -548,3 +620,6 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Water is one level from −credit cap to +cap and carries over between days. Urgency counts awake time since the last wake. Time at the cap is a metric written for closed days. |
 | 2026-11-19 | Design: water screen led by today's total; home water tile led by what is due now. |
 | 2026-11-19 | Level engine: pure simulation run on every read, in the Worker and the PWA; no tables. Session-dependent drift waits for focus energy. |
+| 2026-11-19 | Focus: one timer at a time (starting one stops the running one); the home tile starts or stops deep focus; until sleep is set, "ok" is assumed. |
+| 2026-11-19 | Level engine extended with spans and affine rates (response curves); a daily ceiling is the per-day model's max. Closed-day rollups are finalised by one shared mechanism for water and focus. |
+| 2026-11-19 | Focus energy restarts each day at wake; no carry-over. Rate precedence: unfocus, deep, moderate, baseline. Setting sleep before the wake time starts the day early. |

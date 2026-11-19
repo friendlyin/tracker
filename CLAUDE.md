@@ -2,8 +2,8 @@
 
 A personal health-tracking mobile PWA for one person or a household (a few accounts per
 deployment). Each person has a separate
-account and only sees their own data. The app tracks workouts, nutrition, water, and later habits, focus,
-mood and WHOOP data. The app has no AI of its own: Claude reads and writes app data through the app's
+account and only sees their own data. The app tracks workouts, nutrition, water and focus energy, and
+later habits, mood and WHOOP data. The app has no AI of its own: Claude reads and writes app data through the app's
 MCP server.
 
 - Requirements and iteration plan: [docs/requirements.md](docs/requirements.md)
@@ -49,7 +49,9 @@ Code map:
 - `worker/services/entries.ts` + `shared/tracking/trackers.ts`: the tracking engine (entries of
   trackers defined in code, rolled up into `metric_daily`).
 - `shared/level/engine.ts` + `shared/schedule.ts`: the level engine (a level drifting per phase of the
-  day, moved by entries). Water (`shared/water/model.ts`) is its first configuration.
+  day, moved by entries and sessions). Water (`shared/water/model.ts`) and focus energy
+  (`shared/focus/model.ts`) are its configurations; `worker/services/levels.ts` finalises their
+  closed-day rollups.
 - `shared/<feature>/`: zod schemas, DTO types (`types.ts`) and pure logic shared by PWA and Worker.
 - `src/routes/`: screens; `src/features/<feature>/`: query hooks and feature components; `src/ui/`: base
   components; `src/dev/variants.tsx`: `useVariant`.

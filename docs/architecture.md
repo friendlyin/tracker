@@ -211,8 +211,8 @@ The three shared engines (tracking, level, metrics) are described in
   `shared/tracking/trackers.ts`; a `tracker` table is added only with user-defined trackers. Tags are
   added when a tracker needs them. Meals, water, focus sessions, unfocus, sleep quality, habits and mood
   are all entries.
-- **Level engine**: no tables. It is a pure simulation over entries + config in `shared/level/`, run
-  on every read. The API returns the simulation's inputs, so the PWA runs the same simulation live
+- **Level engine**: no tables. It is a pure simulation over entries, spans (sessions) and config in
+  `shared/level/`, run on every read. The API returns the simulation's inputs, so the PWA runs the same simulation live
   (every minute and after optimistic writes).
 - **Metrics engine**: `metric_daily` (user, local_date, metric, dimension, value), updated on every
   write and indexed by (user, metric, local_date).
@@ -236,6 +236,12 @@ The three shared engines (tracking, level, metrics) are described in
   day schedule comes from `user`. `metric_daily` holds `water.intake_ml`, `water.target_ml` (days with
   water) and `water.at_cap_min`. The last one is written lazily for closed days; the last finalised
   date is kept in `user_setting` key `water.finalized`.
+- **Focus**: sessions are `focus` entries (`occurred_at` start, `ended_at` end, null while a timer
+  runs; kind deep / moderate / unfocus and tag in `data`). Sleep quality is one `sleep` entry per local
+  date (value 3 / 2 / 1). Settings in `user_setting` key `focus`. `metric_daily` holds the minutes per
+  tier and `sleep.quality` on every write. For closed days it also holds `focus.min_energy` and the
+  minutes at or below each threshold, written through the same lazy finalisation as water
+  (`worker/services/levels.ts`, key `focus.finalized`).
 - **Later**: `whoop_connection` (tokens, encrypted) and `whoop_cycle` / `whoop_sleep` /
   `whoop_recovery` / `whoop_workout`.
 
