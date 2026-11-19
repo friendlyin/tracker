@@ -46,6 +46,8 @@ it requires the Cloudflare Access JWT (`worker/auth.ts`) and fails closed.
 Code map:
 - `worker/services/*`: domain logic as `(db, userId, input)` functions. API routes (`worker/routes/`) and
   MCP tools (`worker/mcp/tools/`, served at `/mcp`) are thin wrappers over them.
+- `worker/oauth.ts` + `worker/consent.ts`: OAuth for MCP clients. `/mcp` needs a token whose grant
+  names the user; `/authorize` (behind Access) is the consent page.
 - `worker/services/entries.ts` + `shared/tracking/trackers.ts`: the tracking engine (entries of
   trackers defined in code, rolled up into `metric_daily`).
 - `shared/level/engine.ts` + `shared/schedule.ts`: the level engine (a level drifting per phase of the

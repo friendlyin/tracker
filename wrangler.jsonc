@@ -3,19 +3,19 @@
   "name": "tracker",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
-  "compatibility_flags": ["nodejs_compat"],
+  // global_fetch_strictly_public: OAuth client metadata documents are fetched safely (SSRF).
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "observability": { "enabled": true },
   "assets": {
     // React PWA is served as static assets; unknown paths fall back to index.html.
     "not_found_handling": "single-page-application",
-    // These paths always hit the Worker first (API, auth, MCP).
+    // These paths always hit the Worker first (API, MCP and its OAuth endpoints).
     "run_worker_first": [
       "/api/*",
       "/mcp*",
       "/authorize*",
       "/token*",
       "/register*",
-      "/callback*",
       "/.well-known/*"
     ]
   },
@@ -27,5 +27,7 @@
       // afterwards, so no account-specific ids live in this public repo (see docs/cloudflare-setup.md).
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  // OAuth clients, grants and tokens for MCP clients (Claude). No id: created on first deploy, like D1.
+  "kv_namespaces": [{ "binding": "OAUTH_KV" }]
 }

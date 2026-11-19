@@ -17,9 +17,12 @@ function normalizeTeamDomain(raw: string): string {
   return withScheme.replace(/\/+$/, "");
 }
 
+export const isLoopback = (host: string) =>
+  host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+
 /** localhost or a private network address (phone testing against `pnpm dev --host`). */
 export function isLocalHost(host: string): boolean {
-  if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") return true;
+  if (isLoopback(host)) return true;
   if (/^10\.\d+\.\d+\.\d+$/.test(host) || /^192\.168\.\d+\.\d+$/.test(host)) return true;
   const m = /^172\.(\d+)\.\d+\.\d+$/.exec(host);
   return m !== null && Number(m[1]) >= 16 && Number(m[1]) <= 31;

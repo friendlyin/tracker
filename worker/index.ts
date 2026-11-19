@@ -2,16 +2,18 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { type HomeDto, type MeDto, profilePatchSchema } from "../shared/profile";
 import { localDate } from "../shared/time";
-import { type AppEnv, requireUser } from "./auth";
+import { type AppEnv, identify, isLocalHost, isLoopback, requireUser } from "./auth";
+import { getDb } from "./db";
 import type { User } from "./db/schema";
 import { handleMcp } from "./mcp";
+import { withOAuth } from "./oauth";
 import { focusRoutes } from "./routes/focus";
 import { nutritionRoutes } from "./routes/nutrition";
 import { waterRoutes } from "./routes/water";
 import { workoutRoutes } from "./routes/workouts";
 import { InvalidError, NotFoundError } from "./services/errors";
 import { getDayStatus } from "./services/nutrition";
-import { updateProfile } from "./services/users";
+import { ensureUser, updateProfile } from "./services/users";
 import { getActiveWorkout, getWeekPlan } from "./services/workouts";
 
 function toMe(u: User): MeDto {
@@ -53,10 +55,28 @@ api.onError((err, c) => {
   return c.json({ error: "internal" }, 500);
 });
 
+const withAuth = withOAuth((req, env, ctx) => api.fetch(req, env, ctx));
+
+/** Local development as DEV_USER_EMAIL: `/mcp` without a token acts as that user. */
+async function devMcp(req: Request, env: Env): Promise<Response | null> {
+  const url = new URL(req.url);
+  if (url.pathname !== "/mcp" && url.pathname !== "/mcp/") return null;
+  if (req.headers.has("authorization")) return null;
+  const email = await identify(req, env);
+  if (!email) return null;
+  const db = getDb(env.DB);
+  return handleMcp(req, db, await ensureUser(db, email, "UTC"));
+}
+
 export default {
-  fetch(req, env, ctx) {
-    const { pathname } = new URL(req.url);
-    if (pathname === "/mcp" || pathname === "/mcp/") return handleMcp(req, env);
-    return api.fetch(req, env, ctx);
+  async fetch(req, env, ctx) {
+    const url = new URL(req.url);
+    if (isLocalHost(url.hostname)) {
+      const dev = await devMcp(req, env);
+      if (dev) return dev;
+      // OAuth needs https or a loopback host; a LAN address (phone testing) gets the plain API.
+      if (!isLoopback(url.hostname)) return api.fetch(req, env, ctx);
+    }
+    return withAuth(req, env, ctx);
   },
 } satisfies ExportedHandler<Env>;

@@ -66,8 +66,8 @@ You need:
 4. **Add secrets** with `pnpm wrangler secret put ...`. The Access team domain and audience tag.
 5. **Install on your phone.** iPhone: open the URL in Safari → Share → Add to Home Screen. Android:
    Chrome → menu → Install app.
-6. **Connect Claude** (from iteration 6). In claude.ai, go to Settings → Connectors → Add custom
-   connector and enter `https://<your-app>/mcp`.
+6. **Connect Claude.** In claude.ai, go to Settings → Connectors → Add custom connector, enter
+   `https://<your-app>/mcp`, log in with the email code and allow it.
 
 Every push to your fork's `main` branch redeploys automatically.
 

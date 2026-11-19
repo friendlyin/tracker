@@ -112,12 +112,21 @@ external identity provider.
   email. The Worker verifies it and maps the email to an app user row.
 
 **Claude login**
-- Access does **not** do the OAuth handshake with Claude itself. It acts as the identity provider
-  behind our server ("Access for SaaS", OIDC).
-- The Worker still uses `@cloudflare/workers-oauth-provider` to talk OAuth to Claude. On `/authorize`
-  it sends you to the Access login and receives your email back.
-- Cloudflare publishes a template for exactly this setup ("MCP server + Access OAuth"), so most of the
-  code is copy-adapt.
+- Access does **not** do the OAuth handshake with Claude itself. The Worker is the OAuth 2.1
+  authorization server (`@cloudflare/workers-oauth-provider`, `worker/oauth.ts`) and `/mcp` its only
+  resource: discovery metadata, dynamic client registration and client metadata documents, PKCE,
+  1-hour access tokens and a refresh grant that lives while used (30 days idle).
+- **Signing in is Access itself.** `/authorize` opens in the user's browser, so it stays behind the
+  app's Access application: the request arrives with the Access JWT, the Worker reads the email as
+  for the app, and shows a consent page (client name, where access goes, Allow / Deny). Allow issues
+  a grant for that user. The consent page is required: anyone can register a client and send a
+  logged-in user an `/authorize` link.
+- Only the machine endpoints bypass Access: `/mcp`, `/token`, `/register`, `/.well-known/`.
+- Chosen over the original plan (Access for SaaS as an OIDC provider behind `/authorize`, from
+  Cloudflare's template): same login, but no second Access application, no `/callback` and no
+  secrets.
+- The provider is built per request origin, so the deployment's hostname is never configured or
+  committed. Grants and tokens live in KV (`OAUTH_KV`), hashed; props are encrypted.
 
 **Pros**
 - No passwords, sign-up screens, password reset or hashing (so no CPU-limit risk).
@@ -167,8 +176,8 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
   server per request with `@modelcontextprotocol/sdk`, bound to the authenticated user. Tools in
   `worker/mcp/tools/` are thin wrappers over `worker/services/`. No Durable Object is needed.
 - Locally (`pnpm dev`) it acts as the dev user: `claude mcp add --transport http tracker-dev
-  http://localhost:5173/mcp`. In production it answers 401 until OAuth for MCP clients is added
-  (iteration 6).
+  http://localhost:5173/mcp`. A request with a bearer token goes through OAuth, so the whole flow
+  can be tested locally too. In production every request needs an OAuth token (§3).
 - Times are exchanged as local ISO 8601 with offset. The SDK's default schema validator (Ajv) compiles
   with `new Function`, which Workers forbid, so the server uses the `@cfworker/json-schema` validator.
 - Connect from claude.ai: Settings → Connectors → Add custom connector → paste the URL. It works on

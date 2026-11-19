@@ -108,15 +108,15 @@ See [architecture.md §3](architecture.md#3-authentication) for why. The Zero Tr
    hex string). The text there about a "token validation script" refers to the Worker's own check
    (`worker/auth.ts`); nothing else to set up. The team domain is
    `https://<team>.cloudflareaccess.com`. Store both as secrets (A7).
-6. **Bypass for Claude** (needed for Part B; test it now): add a second Access application
-   (**Self-hosted and private**, name `tracker-mcp`) with six **public hostname** destinations on
-   `<app-host>`, paths `mcp`, `authorize`, `token`, `register`, `callback` and `.well-known`. Delete
-   any **Workers** destination the dialog adds: it belongs to the first application, and keeping it
-   fails with "destination belongs to another application". Give it one policy with Action
-   **Bypass**, Include **Everyone**. Access applies the application with the most specific path. The Worker protects
-   these paths with its own OAuth. Check that `https://<app-host>/mcp` answers
-   `{"error":"unauthorized"}` instead of showing the Access login page (until Part B, `/mcp` accepts
-   no logins at all).
+6. **Bypass for Claude:** add a second Access application (**Self-hosted and private**, name
+   `tracker-mcp`) with four **public hostname** destinations on `<app-host>`, paths `mcp`, `token`,
+   `register` and `.well-known`. Delete any **Workers** destination the dialog adds: it belongs to
+   the first application, and keeping it fails with "destination belongs to another application".
+   Give it one policy with Action **Bypass**, Include **Everyone**. Access applies the application
+   with the most specific path. These are the machine endpoints Claude calls; the Worker protects
+   them with its own OAuth tokens. `/authorize` is *not* bypassed: it is where you log in and allow
+   Claude, so it stays behind the login. Check in a private window: `https://<app-host>/mcp` answers
+   with an error (401) and no login page; `https://<app-host>/authorize` shows the login page.
 
 If logging in on the iPhone (A8) or step 6 fails, we switch to the fallback (Better Auth, email +
 password).
@@ -155,7 +155,7 @@ shell still loads but shows no data.
   ```
 
 ### A10. Later: custom domain
-Not needed; the `workers.dev` address is fine. If you switch later, reconnect Claude (B2) and
+Not needed; the `workers.dev` address is fine. If you switch later, reconnect Claude (B1) and
 re-install the PWA. Access path rules are simplest on a custom domain.
 1. If you need a domain: sidebar → **Domain Registration → Register Domains**. Cloudflare sells at cost,
    roughly $10/year for `.com`.
@@ -168,33 +168,26 @@ re-install the PWA. Access path rules are simplest on a custom domain.
 
 ## Part B: Iteration 6 (connect Claude)
 
-### B1. Storage for OAuth tokens (KV)
-The code adds an `OAUTH_KV` binding without an id to `wrangler.jsonc`. The next deploy from GitHub
-creates the namespace. To check in the dashboard: **Storage & databases → Workers KV**.
+Claude connects with OAuth, run by the Worker. Logging in is the same Access email code as the app,
+then an **Allow** page. Nothing to set up beyond A6 step 6:
+- The OAuth storage (KV namespace `OAUTH_KV`) is created on the first deploy, like the database. To
+  look at it: **Storage & databases → Workers KV**.
+- No secrets.
 
-### B2. Access as the identity provider for Claude logins
-1. Zero Trust → **Access controls → Applications → Add an application → SaaS** → choose **OIDC**.
-2. **Redirect URLs:** `https://<app-host>/callback`. Under advanced settings, enable **Refresh tokens**.
-3. Use the same Allow policy (the invited emails).
-4. Save, then copy the client ID, client secret and the token / authorization / JWKS endpoints into
-   secrets:
-   ```bash
-   pnpm wrangler secret put ACCESS_CLIENT_ID
-   pnpm wrangler secret put ACCESS_CLIENT_SECRET
-   pnpm wrangler secret put ACCESS_TOKEN_URL
-   pnpm wrangler secret put ACCESS_AUTHORIZATION_URL
-   pnpm wrangler secret put ACCESS_JWKS_URL
-   pnpm wrangler secret put COOKIE_ENCRYPTION_KEY   # openssl rand -hex 32
-   ```
-
-### B3. Connect Claude
-- **claude.ai** (web, then also available in the desktop and mobile apps): Settings → **Connectors** →
-  **Add custom connector** → URL `https://<app-host>/mcp` → Connect → log in with the email code →
-  Approve.
+### B1. Connect Claude
+- **claude.ai** (web; then also available in the desktop and mobile apps): Settings → **Connectors** →
+  **Add custom connector** → URL `https://<app-host>/mcp` → **Connect** → log in with the email code
+  → **Allow**.
 - **Claude Code:** `claude mcp add --transport http tracker https://<app-host>/mcp`, then run `/mcp`
-  inside Claude Code to log in.
+  inside Claude Code and log in the same way.
 
 Each invited person connects their own Claude with their own account and sees only their own data.
+Claude stays connected as long as it uses the app at least once every 30 days; after that it asks
+to log in again.
+
+To disconnect Claude, remove the connector in Claude. Removing a person from the Access policy stops
+their app login at once, but a Claude connection they already made keeps working until it goes
+unused for 30 days.
 
 ---
 

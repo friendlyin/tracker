@@ -4,6 +4,10 @@ import { SEED_EXERCISES } from "../../shared/workouts/seed";
 import { chunkRows, type Db } from "../db";
 import { exercise, exerciseMuscle, type User, user, userSetting } from "../db/schema";
 
+export async function getUser(db: Db, id: string): Promise<User | null> {
+  return (await db.query.user.findFirst({ where: eq(user.id, id) })) ?? null;
+}
+
 export async function ensureUser(db: Db, email: string, timezone: string): Promise<User> {
   const existing = await db.query.user.findFirst({ where: eq(user.email, email) });
   if (existing) return existing;

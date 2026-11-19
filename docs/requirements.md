@@ -534,11 +534,13 @@ Everything from iterations 1–5 goes live on your own Cloudflare account.
   Fall back to Better Auth (email + password) only if it fails; otherwise remove `better-auth`.
   ✅ Done: login works in the installed PWA, and the bypass works on `workers.dev` (a second Access
   application with one destination per path). `better-auth` is removed.
-- **MCP OAuth:** `@cloudflare/workers-oauth-provider` with Access for SaaS as the identity provider
-  (steps B1–B3), so claude.ai (web, desktop, mobile) and Claude Code connect with each person's own
-  login.
-- Install the PWA on the phone. Optional: move local test data over (`wrangler d1 export` locally,
-  import remotely), or start fresh.
+- **MCP OAuth:** `@cloudflare/workers-oauth-provider` (step B1), so claude.ai (web, desktop, mobile)
+  and Claude Code connect with each person's own login. ✅ Built: the Worker is the authorization
+  server; `/authorize` stays behind Access (the user logs in with the email code, then allows the
+  client on a consent page); `/mcp`, `/token`, `/register` and `/.well-known/` bypass Access. Claude
+  stays connected while used (refresh grant with a 30-day idle expiry). No secrets; OAuth state in
+  KV (`OAUTH_KV`, created on deploy). MCP server version 0.6.0.
+- Install the PWA on the phone. ✅ Production starts fresh; local test data stays local.
 
 ## Iteration 7: Stats engine and Overview
 
@@ -615,6 +617,7 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Shared tracking, level and metrics engines instead of per-feature logic. |
 | 2026-11-19 | Auth: Cloudflare Access with email-code login; Better Auth only as fallback. |
 | 2026-11-19 | Access confirmed on the iPhone PWA and `workers.dev`; Better Auth dropped. Setup uses Zero Trust self-hosted applications, not the Worker's one-click Access dialog. |
+| 2026-11-19 | Claude login: `/authorize` stays behind Access and shows a consent page, instead of Access for SaaS as an upstream OIDC provider (no second Access app, no secrets). Claude stays connected while used (30-day idle refresh). Production starts with no data. |
 | 2026-11-19 | Minor groups: biceps, triceps, core. |
 | 2026-11-19 | Day schedule defaults 07:00–23:00, later replaced by WHOOP sleep data. |
 | 2026-11-19 | Sleep quality: good / ok / bad. Focus sessions: live timer and logging afterwards. |

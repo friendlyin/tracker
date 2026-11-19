@@ -1,9 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/cfworker";
-import { identify } from "../auth";
-import { getDb } from "../db";
-import { ensureUser } from "../services/users";
+import type { Db } from "../db";
+import type { User } from "../db/schema";
 import { registerFocusTools } from "./tools/focus";
 import { registerNutritionTools } from "./tools/nutrition";
 import { registerWaterTools } from "./tools/water";
@@ -19,16 +18,10 @@ const INSTRUCTIONS = `Tracker is the user's personal health tracker: workouts, n
 - Workouts: weekly volume counts working sets per muscle group; warm-ups never count.`;
 
 /**
- * Stateless Streamable HTTP endpoint: a new server per request, bound to the authenticated user.
- * Locally the dev user (localhost / LAN only). In production this fails closed until OAuth for MCP
- * clients lands (iteration 6).
+ * Stateless Streamable HTTP endpoint: a new server per request, bound to `user`. In production the
+ * user comes from the OAuth token (worker/oauth.ts); locally from DEV_USER_EMAIL.
  */
-export async function handleMcp(req: Request, env: Env): Promise<Response> {
-  const email = await identify(req, env);
-  if (!email) return Response.json({ error: "unauthorized" }, { status: 401 });
-
-  const db = getDb(env.DB);
-  const user = await ensureUser(db, email, "UTC");
+export async function handleMcp(req: Request, db: Db, user: User): Promise<Response> {
   const ctx: McpCtx = {
     db,
     userId: user.id,
@@ -37,7 +30,7 @@ export async function handleMcp(req: Request, env: Env): Promise<Response> {
   };
 
   const server = new McpServer(
-    { name: "tracker", version: "0.5.0" },
+    { name: "tracker", version: "0.6.0" },
     // Ajv (the SDK default) compiles schemas with `new Function`, which Workers don't allow.
     { instructions: INSTRUCTIONS, jsonSchemaValidator: new CfWorkerJsonSchemaValidator() },
   );
