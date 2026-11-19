@@ -16,7 +16,7 @@ Built for one person or a household: each person has their own account and sees 
 
 | Feature | What it does | Iteration |
 |---|---|---|
-| Workouts ✅ | Weekly sets per muscle group (major/minor targets, fractional credit for secondary muscles). You choose exercises in the gym, see your previous result instantly, and log warm-up and working sets. | 2 |
+| Workouts ✅ | Weekly sets per muscle group (a target per group, fractional credit for secondary muscles). You choose exercises in the gym, see your previous result instantly, and log warm-up and working sets. | 2 |
 | Nutrition ✅ | Daily kcal / protein budget with workout-day and rest-day targets. Claude logs meals from a photo; the app shows what is left. | 3 |
 | Claude (MCP) | Claude reads and writes your data: log meals, adjust targets, analyse trends. | 3 (local), 6 (claude.ai) |
 | Water ✅ | Water "debt" builds up through the day (slower at night) and is paid off by drinking; one tap on the home screen logs a glass. The app warns when you've been behind for too long. | 4 |

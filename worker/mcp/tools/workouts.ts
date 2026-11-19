@@ -184,7 +184,7 @@ export function registerWorkoutTools(server: McpServer, ctx: McpCtx) {
 
   tool(server, ctx, "get_workout_settings", {
     description:
-      "Workout settings: weekly working-set targets per category (major/minor), the category of each muscle group, and workouts per week.",
+      "Workout settings: the weekly working-set target of each muscle group, and workouts per week.",
     input: z.object({}),
     readOnly: true,
     run: () => svc.getWorkoutSettings(db, userId),
@@ -192,7 +192,7 @@ export function registerWorkoutTools(server: McpServer, ctx: McpCtx) {
 
   tool(server, ctx, "set_workout_settings", {
     description:
-      "Change workout settings: targets { major, minor }, categories { group: major|minor }, workoutsPerWeek. Only the given values change.",
+      "Change workout settings: targets { group: sets per week } for any muscle groups, workoutsPerWeek. Only the given values change.",
     input: workoutSettingsPatchSchema,
     run: (patch) => svc.updateWorkoutSettings(db, userId, patch),
   });

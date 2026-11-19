@@ -45,7 +45,7 @@ describe("planWeek", () => {
     const biceps = plan.groups.find((g) => g.group === "biceps");
     expect(chest).toMatchObject({ target: 12, todayTarget: 4, leftToday: 4, status: "ok" });
     expect(biceps).toMatchObject({ target: 9, todayTarget: 3, status: "ok" });
-    expect(plan.totals.target).toBe(5 * 12 + 4 * 9);
+    expect(plan.totals.target).toBe(5 * 12 + 3 * 9 + 3);
   });
 
   it("limits remaining workouts by days left and flags groups at risk", () => {
@@ -83,10 +83,10 @@ describe("planWeek", () => {
     expect(plan.groups.at(-1)?.status).toBe("done");
   });
 
-  it("respects changed categories and workouts per week", () => {
+  it("respects per-group targets and workouts per week", () => {
     const custom = parseWorkoutSettings({
       workoutsPerWeek: 2,
-      categories: { ...settings.categories, biceps: "major" },
+      targets: { biceps: 12 },
     });
     const plan = planWeek({
       settings: custom,

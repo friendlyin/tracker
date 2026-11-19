@@ -261,8 +261,8 @@ The three shared engines (tracking, level, metrics) are described in
   `shared/metrics/progress.ts` computes strength trends. A new rollup metric is backfilled for past
   days by a SQL migration.
 - **Workouts** (domain tables, more structure than entries):
-  - muscle groups are 9 fixed keys in code (`shared/workouts/groups.ts`); each group's category
-    (major/minor), the targets and workouts per week live in `user_setting` key `workouts`
+  - muscle groups are 9 fixed keys in code (`shared/workouts/groups.ts`); the weekly set target of
+    each group and workouts per week live in `user_setting` key `workouts`
   - `exercise` (user-owned; the seed library in `shared/workouts/seed.ts` is copied to each new user,
     `seed_key` remembers the origin; equipment, recommended sets and rep range, `archived_at`)
   - `exercise_muscle` (exercise, group, contribution 1.0 / 0.5 / 0.25)

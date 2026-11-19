@@ -11,7 +11,6 @@ export const MUSCLE_GROUPS = [
 ] as const;
 
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
-export type GroupCategory = "major" | "minor";
 
 export const GROUP_LABELS: Record<MuscleGroup, string> = {
   chest: "Chest",
@@ -25,16 +24,17 @@ export const GROUP_LABELS: Record<MuscleGroup, string> = {
   calves: "Calves",
 };
 
-export const DEFAULT_CATEGORIES: Record<MuscleGroup, GroupCategory> = {
-  chest: "major",
-  back: "major",
-  shoulders: "major",
-  biceps: "minor",
-  triceps: "minor",
-  quads: "major",
-  hams_glutes: "major",
-  core: "minor",
-  calves: "minor",
+/** Default weekly working-set target per group; each one can be changed in settings. */
+export const DEFAULT_TARGETS: Record<MuscleGroup, number> = {
+  chest: 12,
+  back: 12,
+  shoulders: 12,
+  biceps: 9,
+  triceps: 9,
+  quads: 12,
+  hams_glutes: 12,
+  core: 9,
+  calves: 3,
 };
 
 export function isMuscleGroup(v: string): v is MuscleGroup {

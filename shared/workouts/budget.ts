@@ -1,5 +1,5 @@
 import { daysLeftInWeek, type LocalDate } from "../time";
-import { type GroupCategory, MUSCLE_GROUPS, type MuscleGroup } from "./groups";
+import { MUSCLE_GROUPS, type MuscleGroup } from "./groups";
 import type { WorkoutSettings } from "./settings";
 
 export type Volume = Record<MuscleGroup, number>;
@@ -34,7 +34,6 @@ export type GroupStatus = "done" | "ok" | "at_risk";
 
 export interface GroupPlan {
   group: MuscleGroup;
-  category: GroupCategory;
   target: number;
   /** Working sets this week, including today. */
   done: number;
@@ -84,8 +83,7 @@ export function planWeek(input: PlanWeekInput): WeekPlan {
   const remainingWorkouts = Math.max(1, Math.min(perWeek - workoutsDone, daysLeft));
 
   const groups: GroupPlan[] = MUSCLE_GROUPS.map((group) => {
-    const category = settings.categories[group];
-    const target = settings.targets[category];
+    const target = settings.targets[group];
     const done = volume[group];
     const doneToday = volumeToday[group];
     const remaining = Math.max(0, target - done);
@@ -96,7 +94,7 @@ export function planWeek(input: PlanWeekInput): WeekPlan {
     const normalSession = target / perWeek;
     const status: GroupStatus =
       remaining <= 0 ? "done" : todayTarget > normalSession * 1.5 ? "at_risk" : "ok";
-    return { group, category, target, done, doneToday, remaining, todayTarget, leftToday, status };
+    return { group, target, done, doneToday, remaining, todayTarget, leftToday, status };
   });
 
   const order = (g: GroupPlan) => MUSCLE_GROUPS.indexOf(g.group);

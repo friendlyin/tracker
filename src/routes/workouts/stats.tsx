@@ -4,7 +4,7 @@ import { METRICS } from "../../../shared/metrics/registry";
 import { bucketValues, periodValue } from "../../../shared/metrics/series";
 import type { ExerciseProgressDto, GroupProgressDto } from "../../../shared/metrics/types";
 import { GROUP_LABELS, MUSCLE_GROUPS } from "../../../shared/workouts/groups";
-import type { WorkoutSettings } from "../../../shared/workouts/settings";
+import { type WorkoutSettings, weeklySetTarget } from "../../../shared/workouts/settings";
 import { useVariant } from "../../dev/variants";
 import { useMetrics, useProgression } from "../../features/stats/api";
 import { StatsScreen } from "../../features/stats/PeriodBar";
@@ -22,9 +22,6 @@ export const Route = createFileRoute("/workouts/stats")({ component: WorkoutStat
 
 const IDS = [METRICS.workoutsCount.id, METRICS.workingSets.id];
 
-const weeklyTarget = (s: WorkoutSettings) =>
-  MUSCLE_GROUPS.reduce((sum, g) => sum + s.targets[s.categories[g]], 0);
-
 /** Elapsed share of a week: targets are per week, periods are not. */
 const weeksSoFar = (p: Period, today: string) =>
   daysBetween(p.from, p.to < today ? p.to : today) / 7;
@@ -40,7 +37,7 @@ function WorkoutStats() {
   const workouts = periodValue(rows, METRICS.workoutsCount, p, { today }) ?? 0;
   const sets = periodValue(rows, METRICS.workingSets, p, { today }) ?? 0;
   const plannedWorkouts = settings ? Math.round(settings.workoutsPerWeek * weeks) : null;
-  const plannedSets = settings ? Math.round(weeklyTarget(settings) * weeks) : null;
+  const plannedSets = settings ? Math.round(weeklySetTarget(settings) * weeks) : null;
 
   return (
     <StatsScreen back="/workouts" title="Workouts">
@@ -49,7 +46,7 @@ function WorkoutStats() {
         <Big value={fmtSets(sets)} of={plannedSets} unit="sets" />
       </div>
 
-      <Timeline p={p} today={today} rows={rows} target={settings && weeklyTarget(settings)} />
+      <Timeline p={p} today={today} rows={rows} target={settings && weeklySetTarget(settings)} />
 
       {settings && (
         <Groups
@@ -182,7 +179,7 @@ function Groups({
       <SectionLabel>Muscle groups</SectionLabel>
       {MUSCLE_GROUPS.map((g) => {
         const done = periodValue(rows, METRICS.workingSets, p, { today, dimension: g }) ?? 0;
-        const target = Math.round(settings.targets[settings.categories[g]] * weeks);
+        const target = Math.round(settings.targets[g] * weeks);
         return (
           <Link
             key={g}

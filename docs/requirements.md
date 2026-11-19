@@ -180,9 +180,8 @@ Weekly-volume-driven gym logging where exercises are chosen in the gym.
 
 **Muscle groups and targets**
 - 9 groups: chest, back, shoulders, biceps, triceps, quads, hamstrings & glutes, core, calves.
-- Each group is **major** or **minor**. Weekly working-set targets are set per category in settings:
-  major 12, minor 9. The category of each group can be changed in settings.
-  Default: minor = biceps, triceps, core, calves; major = chest, back, shoulders, quads, hamstrings & glutes.
+- Each group has its own weekly working-set target, set in settings. Defaults: 12 for chest, back,
+  shoulders, quads, hamstrings & glutes; 9 for biceps, triceps, core; 3 for calves.
 
 **Exercises and muscle contributions**
 - Each exercise has a contribution per muscle group: 1.0 for primary groups, 0.5 for secondary (0.25
@@ -215,7 +214,7 @@ Weekly-volume-driven gym logging where exercises are chosen in the gym.
 6. Finish the workout. It becomes the baseline for next time and feeds stats.
 
 **Other**
-- Settings: targets per category, group categories, workouts per week, program mode (default
+- Settings: a weekly set target per group, workouts per week, program mode (default
   "full body"; upper/lower and focus modes are in the backlog, and the data model is ready for them).
 - Home widget: working sets done this week / remaining this week.
 - Metrics: workouts count, working sets per group, per-exercise top set and estimated 1RM (lets weight
@@ -733,3 +732,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Offline: an own outbox in IndexedDB instead of TanStack's paused mutations. Those pause only when the browser reports offline (iOS often reports online with no usable signal), are lost when a deploy clears the cache, and need every mutation registered globally. |
 | 2026-11-19 | Calves added as a minor muscle group. Library exercises added in later releases reach existing users: the exercise list inserts seed exercises whose key the user has none of. Each muscle group's category has its own default, so stored settings stay valid when a group is added. |
 | 2026-11-19 | Stats: hand-written SVG charts (no library); calendar periods paged back and forward; one aggregated query per stats request; strength progress as the trend of the best e1RM per session. |
+| 2026-11-20 | Weekly set targets are set per muscle group instead of per major/minor category (calves need far fewer sets than any category). Settings stored per category convert to per-group targets with the same numbers; calves start at 3. |
