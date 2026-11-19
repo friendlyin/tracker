@@ -1,0 +1,7 @@
+# Copy to .dev.vars (git-ignored) for local development.
+# On localhost the API acts as this user. Ignored on any other host.
+DEV_USER_EMAIL=you@example.com
+
+# Production values are Cloudflare secrets (see docs/cloudflare-setup.md A7), not set here:
+# ACCESS_TEAM_DOMAIN=https://<team>.cloudflareaccess.com
+# ACCESS_AUD=<application audience tag>

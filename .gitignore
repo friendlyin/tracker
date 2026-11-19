@@ -10,3 +10,4 @@ dev-dist
 *.tsbuildinfo
 .private-terms
 *.sql
+!migrations/*.sql
