@@ -1,0 +1,12 @@
+node_modules
+dist
+dev-dist
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+*.local
+.DS_Store
+*.tsbuildinfo
+.private-terms
+*.sql

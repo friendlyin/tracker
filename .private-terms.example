@@ -1,0 +1,6 @@
+# Copy to .private-terms (git-ignored) and list everything that must never reach the public repo.
+# One term per line; matching is case-insensitive and whole-word. Prefer full names over short ones.
+Jane Doe
+jane.doe@example.com
+my-workers-subdomain
+my-zero-trust-team

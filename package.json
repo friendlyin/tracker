@@ -1,0 +1,57 @@
+{
+  "name": "health-app",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "pnpm build && vite preview",
+    "deploy": "pnpm build && wrangler deploy",
+    "typecheck": "tsc -b",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply health-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply health-db --remote",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "check:private": "scripts/check-private.sh all"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^1.2.4",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@tanstack/react-query": "^5.108.0",
+    "@tanstack/react-router": "^1.170.46",
+    "agents": "^0.33.0",
+    "better-auth": "^1.7.26",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.19",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.8",
+    "@cloudflare/vite-plugin": "^1.70.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "@tanstack/router-plugin": "^1.169.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "drizzle-kit": "^0.31.11",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.1",
+    "wrangler": "^4.165.0"
+  }
+}
