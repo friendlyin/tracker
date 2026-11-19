@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   logFocusInput,
   setSleepInput,
+  startFocusInput,
   stopFocusInput,
   updateFocusInput,
 } from "../../shared/focus/schemas";
@@ -23,6 +24,10 @@ export const focusRoutes = new Hono<AppEnv>()
   .get("/focus/day", inputs)
   .post("/focus/entries", zValidator("json", logFocusInput), async (c) => {
     await svc.logFocus(c.var.db, who(c), c.req.valid("json"), "app");
+    return inputs(c);
+  })
+  .post("/focus/start", zValidator("json", startFocusInput), async (c) => {
+    await svc.startFocus(c.var.db, who(c), c.req.valid("json"), "app");
     return inputs(c);
   })
   .patch("/focus/entries/:id", idParam, zValidator("json", updateFocusInput), async (c) => {

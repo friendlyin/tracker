@@ -1,4 +1,5 @@
 import {
+  after,
   classify,
   durationWhere,
   firstFall,
@@ -27,26 +28,40 @@ const FORECAST_H = 12;
 
 export const sleepValue: Record<SleepQuality, number> = { good: 3, ok: 2, bad: 1 };
 
-/** Rates per hour. Only the first that applies counts: unfocus, deep, moderate, awake baseline. */
-export function focusModel(
-  s: FocusSettings,
-  ceiling: number,
-): LevelModel<{ at: number }, FocusKind> {
+/** Minutes added afterwards, without a time: applied at once when they are added. */
+export interface FocusLump {
+  at: number;
+  kind: FocusKind;
+  minutes: number;
+}
+
+/**
+ * Rates per hour. Only the first that applies counts: unfocus, deep, moderate, awake baseline.
+ *
+ * Added minutes are a lump: the extra drain of the tier beyond the baseline (which already ran for
+ * that time), or for unfocus the restore over that many minutes plus the baseline it paused.
+ */
+export function focusModel(s: FocusSettings, ceiling: number): LevelModel<FocusLump, FocusKind> {
   const perMin = s.restorePerMin;
+  const restore = {
+    base: 60 * perMin * s.restoreFloor,
+    perLevel: (60 * perMin * (1 - s.restoreFloor)) / 100,
+  };
   return {
     min: 0,
     max: ceiling,
     rate(phase, active) {
-      if (active.has("unfocus"))
-        return {
-          base: 60 * perMin * s.restoreFloor,
-          perLevel: (60 * perMin * (1 - s.restoreFloor)) / 100,
-        };
+      if (active.has("unfocus")) return restore;
       if (active.has("deep")) return -s.drain.deep;
       if (active.has("moderate")) return -s.drain.moderate;
       return phase === "awake" ? -s.drain.baseline : 0;
     },
-    apply: (level) => level,
+    apply(level, e) {
+      const h = e.minutes / 60;
+      if (e.kind === "unfocus")
+        return after(level, restore, e.minutes * MIN) + s.drain.baseline * h;
+      return level - (s.drain[e.kind] - s.drain.baseline) * h;
+    },
   };
 }
 
@@ -100,8 +115,18 @@ function dayClock(inputs: FocusInputsDto, day: FocusDay): LevelClock {
   };
 }
 
+/** Timer sessions run over time; a running one until `openUntil`. */
 const spansOf = (entries: readonly FocusEntryDto[], openUntil: number): LevelSpan<FocusKind>[] =>
-  entries.map((e) => ({ from: e.startedAt, to: e.endedAt ?? openUntil, kind: e.kind }));
+  entries
+    .filter((e) => e.minutes === null)
+    .map((e) => ({ from: e.startedAt, to: e.endedAt ?? openUntil, kind: e.kind }));
+
+const lumpsOf = (entries: readonly FocusEntryDto[]): FocusLump[] =>
+  entries.flatMap((e) =>
+    e.minutes === null ? [] : [{ at: e.startedAt, kind: e.kind, minutes: e.minutes }],
+  );
+
+export const isRunning = (e: FocusEntryDto) => e.minutes === null && e.endedAt === null;
 
 function simulateDay(
   inputs: FocusInputsDto,
@@ -111,7 +136,7 @@ function simulateDay(
 ): Simulation {
   return simulate(focusModel(inputs.settings, day.ceiling), {
     start: { at: day.start, level: day.startLevel },
-    entries: [],
+    entries: lumpsOf(inputs.entries),
     spans: spansOf(inputs.entries, openUntil),
     to,
     clock: dayClock(inputs, day),
@@ -165,13 +190,13 @@ function forecast(
 }
 
 const minutesIn = (e: FocusEntryDto, from: number, to: number) =>
-  Math.max(0, Math.min(e.endedAt ?? to, to) - Math.max(e.startedAt, from)) / MIN;
+  e.minutes ?? Math.max(0, Math.min(e.endedAt ?? to, to) - Math.max(e.startedAt, from)) / MIN;
 
 export function focusState(inputs: FocusInputsDto, now: number): FocusStateDto {
   const day = focusDay(inputs, now);
   const sim = simulateDay(inputs, day, now);
   const running = inputs.entries
-    .filter((e) => e.endedAt === null && e.startedAt <= now)
+    .filter((e) => isRunning(e) && e.startedAt <= now)
     .sort((a, b) => b.startedAt - a.startedAt)[0];
   const mine = inputs.entries.filter((e) => e.startedAt >= day.start && e.startedAt <= now);
   const sum = (k: FocusKind) =>
@@ -216,7 +241,7 @@ export function focusDayStats(inputs: FocusInputsDto, date: LocalDate): FocusDay
     0,
     ...inputs.entries
       .filter((e) => e.startedAt >= day.start && e.startedAt < next)
-      .map((e) => e.endedAt ?? 0),
+      .map((e) => e.endedAt ?? e.startedAt),
   );
   const end = Math.min(next, Math.max(sleepInstant(date, schedule, tz), lastEnd));
   const { points } = simulateDay(inputs, day, end);

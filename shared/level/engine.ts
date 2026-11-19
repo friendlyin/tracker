@@ -61,8 +61,9 @@ export interface Simulation {
 const HOUR = 3_600_000;
 const CURVE_STEP = 5 * 60_000;
 
-/** The level after `ms` at a constant rate `r` (unclamped). */
-function after(level: number, r: { base: number; perLevel: number }, ms: number): number {
+/** The level after `ms` at a constant rate `r` (unclamped). Models use it for lump effects. */
+export function after(level: number, rate: Rate, ms: number): number {
+  const r = typeof rate === "number" ? { base: rate, perLevel: 0 } : rate;
   const h = ms / HOUR;
   if (r.perLevel === 0) return level + r.base * h;
   const eq = -r.base / r.perLevel;

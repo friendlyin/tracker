@@ -3,8 +3,6 @@ import { useState } from "react";
 import type { FocusKind } from "../../../shared/focus/schemas";
 import { SLEEP_LABEL, type SleepQuality, sleepQualities } from "../../../shared/focus/settings";
 import type { FocusEntryDto, FocusStateDto } from "../../../shared/focus/types";
-import { zonedInstant } from "../../../shared/schedule";
-import { localDate } from "../../../shared/time";
 import {
   useDeleteFocus,
   useFocusDay,
@@ -15,7 +13,6 @@ import {
   useUpdateFocus,
 } from "../../features/focus/api";
 import { Elapsed, KIND_LABEL, Summary, Totals } from "../../features/focus/Summary";
-import { deviceTimeZone } from "../../lib/api";
 import { fmtDuration, fmtTime } from "../../lib/format";
 import { Button } from "../../ui/Button";
 import { cx } from "../../ui/cx";
@@ -27,19 +24,10 @@ import { Stepper } from "../../ui/Stepper";
 
 export const Route = createFileRoute("/focus/")({ component: FocusScreen });
 
+// Timers run live; minutes done earlier are added without a time of day and apply when added.
+
 const MIN = 60_000;
 const kinds: FocusKind[] = ["deep", "moderate", "unfocus"];
-
-/** "HH:MM" of an instant on the device clock (for time inputs). */
-const hhmm = (ms: number) => new Date(ms).toTimeString().slice(0, 5);
-
-/** A time typed today; a time later than now means yesterday (just after midnight). */
-function todayAt(time: string): number {
-  const tz = deviceTimeZone();
-  const now = Date.now();
-  const t = zonedInstant(localDate(now, tz), time, tz);
-  return t > now ? t - 24 * 60 * MIN : t;
-}
 
 const label = (e: { kind: FocusKind; tag: string | null }) =>
   e.tag ? `${KIND_LABEL[e.kind]} · ${e.tag}` : KIND_LABEL[e.kind];
@@ -109,14 +97,16 @@ function Entries({
           className="flex min-h-13 w-full items-center gap-3 border-b border-line text-left active:opacity-60"
         >
           <span className="num w-24 shrink-0 text-[13px] text-ink-3">
-            {fmtTime(e.startedAt)}–{e.endedAt !== null && fmtTime(e.endedAt)}
+            {e.minutes !== null
+              ? "+"
+              : `${fmtTime(e.startedAt)}–${e.endedAt === null ? "" : fmtTime(e.endedAt)}`}
           </span>
           <span className="flex-1 text-[17px]">{label(e)}</span>
-          {e.endedAt === null ? (
+          {e.minutes === null && e.endedAt === null ? (
             <Elapsed since={e.startedAt} className="text-[15px] text-ink-2" />
           ) : (
             <span className="num text-[15px] text-ink-2">
-              {fmtDuration(e.endedAt - e.startedAt)}
+              {fmtDuration(e.minutes !== null ? e.minutes * MIN : (e.endedAt ?? 0) - e.startedAt)}
             </span>
           )}
         </button>
@@ -125,7 +115,31 @@ function Entries({
   );
 }
 
-/** Add a session afterwards: kind, tag, start and length. */
+function MinutesStepper({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  placeholder?: string;
+}) {
+  return (
+    <Stepper
+      label="Minutes"
+      unit="min"
+      step={5}
+      min={1}
+      max={24 * 60}
+      size="lg"
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+    />
+  );
+}
+
+/** Minutes done earlier: kind, tag and length, no time of day. */
 function AddSheet({ open, onClose, tags }: { open: boolean; onClose: () => void; tags: string[] }) {
   return (
     <Sheet open={open} onClose={onClose}>
@@ -134,13 +148,11 @@ function AddSheet({ open, onClose, tags }: { open: boolean; onClose: () => void;
   );
 }
 
-/** Mounted on open, so the default start is "30 min ago" from now. */
 function AddForm({ onClose, tags }: { onClose: () => void; tags: string[] }) {
   const log = useFocusLog();
   const [kind, setKind] = useState<FocusKind>("deep");
   const [tag, setTag] = useState<string | null>(null);
   const [minutes, setMinutes] = useState<number | null>(30);
-  const [start, setStart] = useState(() => hhmm(Date.now() - 30 * MIN));
   return (
     <>
       <Segmented
@@ -148,42 +160,20 @@ function AddForm({ onClose, tags }: { onClose: () => void; tags: string[] }) {
         options={kinds.map((k) => ({ value: k, label: KIND_LABEL[k] }))}
         onChange={setKind}
       />
-      {kind === "moderate" && (
+      {kind === "moderate" && tags.length > 0 && (
         <div className="mt-4">
           <TagPicker tags={tags} value={tag} onChange={setTag} />
         </div>
       )}
-      <div className="mt-4 flex items-center gap-3">
-        <input
-          type="time"
-          aria-label="Start"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-          className="num h-11 w-36 shrink-0 rounded-md bg-surface px-3 text-[17px]"
-        />
-        <div className="flex-1">
-          <Stepper
-            label="Minutes"
-            unit="min"
-            step={5}
-            min={1}
-            max={24 * 60}
-            value={minutes}
-            onChange={setMinutes}
-          />
-        </div>
+      <div className="mt-4">
+        <MinutesStepper value={minutes} onChange={setMinutes} />
       </div>
       <Button
         className="mt-4 mb-2"
-        disabled={!minutes || !start}
+        disabled={!minutes}
         onClick={() => {
-          if (!minutes || !start) return;
-          log.log({
-            kind,
-            tag: kind === "moderate" ? (tag ?? undefined) : undefined,
-            at: todayAt(start),
-            minutes,
-          });
+          if (!minutes) return;
+          log.add(kind, minutes, kind === "moderate" ? (tag ?? undefined) : undefined);
           onClose();
         }}
       >
@@ -193,7 +183,7 @@ function AddForm({ onClose, tags }: { onClose: () => void; tags: string[] }) {
   );
 }
 
-/** Fix a session: start, length (empty keeps a timer running), tag; or delete it. */
+/** Fix a session: its length (empty keeps a timer running) and tag; or delete it. */
 function EditSheet({
   entry,
   onClose,
@@ -222,47 +212,27 @@ function EditForm({
   const update = useUpdateFocus();
   const del = useDeleteFocus();
   const length =
-    entry.endedAt === null ? null : Math.round((entry.endedAt - entry.startedAt) / MIN);
-  const [start, setStart] = useState(hhmm(entry.startedAt));
+    entry.minutes ??
+    (entry.endedAt === null ? null : Math.round((entry.endedAt - entry.startedAt) / MIN));
   const [minutes, setMinutes] = useState<number | null>(length);
   const [tag, setTag] = useState(entry.tag);
   return (
     <>
       <div className="text-[17px] font-semibold">{KIND_LABEL[entry.kind]}</div>
-      {entry.kind === "moderate" && (
+      {entry.kind === "moderate" && tags.length > 0 && (
         <div className="mt-4">
           <TagPicker tags={tags} value={tag} onChange={setTag} />
         </div>
       )}
-      <div className="mt-4 flex items-center gap-3">
-        <input
-          type="time"
-          aria-label="Start"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-          className="num h-11 w-36 shrink-0 rounded-md bg-surface px-3 text-[17px]"
-        />
-        <div className="flex-1">
-          <Stepper
-            label="Minutes"
-            unit="min"
-            step={5}
-            min={1}
-            max={24 * 60}
-            placeholder="running"
-            value={minutes}
-            onChange={setMinutes}
-          />
-        </div>
+      <div className="mt-4">
+        <MinutesStepper value={minutes} onChange={setMinutes} placeholder="running" />
       </div>
       <Button
         className="mt-4"
-        disabled={!start || (length !== null && !minutes)}
+        disabled={length !== null && !minutes}
         onClick={() => {
-          const at = hhmm(entry.startedAt) === start ? undefined : todayAt(start);
           update.mutate({
             id: entry.id,
-            at,
             minutes: minutes !== null && minutes !== length ? minutes : undefined,
             tag: tag === entry.tag ? undefined : tag,
           });
@@ -285,28 +255,48 @@ function EditForm({
   );
 }
 
-function TagSheet({
+/** Pick what to start: deep, moderate (or one of its tags) or unfocus. */
+function StartSheet({
   open,
   onClose,
   tags,
-  onPick,
 }: {
   open: boolean;
   onClose: () => void;
   tags: string[];
-  onPick: (t: string | null) => void;
 }) {
+  const log = useFocusLog();
+  const start = (k: FocusKind, tag?: string) => {
+    log.start(k, tag);
+    onClose();
+  };
+  const row =
+    "flex h-14 w-full items-center gap-3 rounded-md bg-surface px-4 text-[17px] font-semibold active:opacity-60";
   return (
     <Sheet open={open} onClose={onClose}>
-      <div className="mb-3 text-[17px] font-semibold">{KIND_LABEL.moderate}</div>
-      <div className="mb-2">
-        <TagPicker
-          tags={tags}
-          onChange={(t) => {
-            onPick(t);
-            onClose();
-          }}
-        />
+      <div className="space-y-2 pb-2">
+        {kinds.map((k) => (
+          <div key={k}>
+            <button type="button" className={row} onClick={() => start(k)}>
+              <PlayIcon className="size-4" />
+              {KIND_LABEL[k]}
+            </button>
+            {k === "moderate" && tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2 pl-11">
+                {tags.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => start("moderate", t)}
+                    className="h-11 rounded-md bg-surface px-4 text-[15px] font-medium active:opacity-60"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </Sheet>
   );
@@ -314,17 +304,14 @@ function TagSheet({
 
 function Actions({
   st,
-  onModerate,
+  onStart,
   onAdd,
 }: {
   st: FocusStateDto;
-  onModerate: () => void;
+  onStart: () => void;
   onAdd: () => void;
 }) {
-  const log = useFocusLog();
   const { stop } = useStopFocus();
-  const btn =
-    "flex h-14 flex-1 items-center justify-center gap-1.5 rounded-md text-[15px] font-semibold active:opacity-60";
   return (
     <div className="pb-3">
       {st.running && (
@@ -347,26 +334,22 @@ function Actions({
         </div>
       )}
       <div className="flex gap-2">
-        {kinds.map((k) => {
-          const on = st.running?.kind === k;
-          return (
-            <button
-              key={k}
-              type="button"
-              aria-pressed={on}
-              onClick={() => (on ? stop() : k === "moderate" ? onModerate() : log.start(k))}
-              className={cx(btn, on ? "bg-ink text-on-ink" : "bg-surface")}
-            >
-              {!on && <PlayIcon className="size-4" />}
-              {KIND_LABEL[k]}
-            </button>
-          );
-        })}
         <button
           type="button"
-          aria-label="Add a session afterwards"
+          onClick={onStart}
+          className={cx(
+            "flex h-14 flex-1 items-center justify-center gap-2 rounded-md text-[17px] font-semibold active:opacity-60",
+            st.running ? "bg-surface" : "bg-ink text-on-ink",
+          )}
+        >
+          <PlayIcon className="size-5" />
+          Start
+        </button>
+        <button
+          type="button"
+          aria-label="Add minutes done earlier"
           onClick={onAdd}
-          className="grid h-14 w-12 shrink-0 place-items-center rounded-md bg-surface active:opacity-60"
+          className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-surface active:opacity-60"
         >
           <PlusIcon />
         </button>
@@ -378,9 +361,8 @@ function Actions({
 function FocusScreen() {
   const { data: d } = useFocusDay();
   const st = useFocusState();
-  const log = useFocusLog();
   const [add, setAdd] = useState(false);
-  const [tagging, setTagging] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [editing, setEditing] = useState<FocusEntryDto | null>(null);
   const tags = d?.settings.tags ?? [];
   const today =
@@ -400,13 +382,7 @@ function FocusScreen() {
         </IconLink>
       }
       footer={
-        st && (
-          <Actions
-            st={st}
-            onModerate={() => (tags.length > 0 ? setTagging(true) : log.start("moderate"))}
-            onAdd={() => setAdd(true)}
-          />
-        )
+        st && <Actions st={st} onStart={() => setStarting(true)} onAdd={() => setAdd(true)} />
       }
     >
       {st && d && (
@@ -424,13 +400,8 @@ function FocusScreen() {
         </>
       )}
       {/* Outside the sticky footer, which would trap the sheets under the header. */}
+      <StartSheet open={starting} onClose={() => setStarting(false)} tags={tags} />
       <AddSheet open={add} onClose={() => setAdd(false)} tags={tags} />
-      <TagSheet
-        open={tagging}
-        onClose={() => setTagging(false)}
-        tags={tags}
-        onPick={(t) => log.start("moderate", t ?? undefined)}
-      />
       <EditSheet entry={editing} onClose={() => setEditing(null)} tags={tags} />
     </Screen>
   );

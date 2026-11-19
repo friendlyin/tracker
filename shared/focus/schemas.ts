@@ -7,7 +7,10 @@ export type FocusKind = (typeof focusKinds)[number];
 
 const tag = z.string().trim().min(1).max(30);
 
-/** `entry.data` of the focus tracker; the start is `occurred_at`, the end `ended_at` (null: running). */
+/**
+ * `entry.data` of the focus tracker. Timers: start in `occurred_at`, end in `ended_at` (null while
+ * running). Minutes added afterwards: `value` is the minutes, `occurred_at` when they were added.
+ */
 export const focusDataSchema = z.object({
   kind: z.enum(focusKinds),
   /** Moderate sessions: podcast, film, reading, … */
@@ -25,20 +28,28 @@ const minutes = z
   .min(1)
   .max(24 * 60);
 
+/** Minutes added afterwards: no time of day, they apply when added. */
 export const logFocusInput = z.object({
   /** Client-generated UUID; logging the same id again is a no-op. */
   id: z.uuid().optional(),
   kind: z.enum(focusKinds),
   tag: tag.optional(),
-  /** Start, ISO 8601 with offset; default now. */
-  time: isoTime.optional(),
-  /** Length in minutes; omit to start a timer (which stops the one running). */
-  minutes: minutes.optional(),
+  minutes,
 });
 export type LogFocusInput = z.infer<typeof logFocusInput>;
 
-export const updateFocusInput = z.object({
+/** Starts a timer, which stops the running one (one timer at a time). */
+export const startFocusInput = z.object({
+  id: z.uuid().optional(),
+  kind: z.enum(focusKinds),
+  tag: tag.optional(),
+  /** Start, ISO 8601 with offset; default now. */
   time: isoTime.optional(),
+});
+export type StartFocusInput = z.infer<typeof startFocusInput>;
+
+/** `minutes` sets the length (and stops a running timer); `tag: null` removes the tag. */
+export const updateFocusInput = z.object({
   minutes: minutes.optional(),
   tag: tag.nullable().optional(),
 });

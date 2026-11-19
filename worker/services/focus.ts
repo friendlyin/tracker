@@ -2,9 +2,11 @@ import { and, eq, isNull } from "drizzle-orm";
 import { focusDayStats, focusState, sleepValue } from "../../shared/focus/model";
 import type {
   FocusData,
+  FocusKind,
   LogFocusInput,
   SetSleepInput,
   SleepData,
+  StartFocusInput,
   UpdateFocusInput,
 } from "../../shared/focus/schemas";
 import {
@@ -56,6 +58,7 @@ function toDto(r: EntryRow): FocusEntryDto {
     tag: d.tag ?? null,
     startedAt: r.occurredAt,
     endedAt: r.endedAt,
+    minutes: r.value,
     localDate: r.localDate,
     source: r.source,
   };
@@ -91,12 +94,19 @@ export async function setFocusSettings(
 
 // ---------- inputs ----------
 
-/** Timers still running, whatever day they started on. */
+/** Timers still running, whatever day they started on (added minutes have a value instead). */
 const runningRows = (db: Db, userId: string) =>
   db
     .select()
     .from(entry)
-    .where(and(eq(entry.userId, userId), eq(entry.tracker, "focus"), isNull(entry.endedAt)));
+    .where(
+      and(
+        eq(entry.userId, userId),
+        eq(entry.tracker, "focus"),
+        isNull(entry.endedAt),
+        isNull(entry.value),
+      ),
+    );
 
 async function loadInputs(
   db: Db,
@@ -215,30 +225,55 @@ export async function stopFocus(db: Db, u: DayUser, at = Date.now()): Promise<Fo
   return out;
 }
 
-/**
- * A session with `minutes` is logged afterwards; without, it starts a timer, which first stops the
- * running one (one timer at a time). Idempotent by id.
- */
+const focusData = (kind: FocusKind, tag: string | undefined): FocusData => ({
+  kind,
+  ...(tag ? { tag } : {}),
+});
+
+async function existing(db: Db, userId: string, id: string | undefined) {
+  const row = id ? await getEntry(db, userId, "focus", id) : null;
+  return row ? toDto(row) : null;
+}
+
+/** Minutes added afterwards: no time of day, they apply now. Idempotent by id. */
 export async function logFocus(
   db: Db,
   u: DayUser,
   input: LogFocusInput,
   source: "app" | "mcp",
 ): Promise<FocusEntryDto> {
-  if (input.id) {
-    const existing = await getEntry(db, u.id, "focus", input.id);
-    if (existing) return toDto(existing);
-  }
+  const done = await existing(db, u.id, input.id);
+  if (done) return done;
+  const row = await logEntry(db, u.id, u.tz, "focus", {
+    id: input.id,
+    occurredAt: Date.now(),
+    value: input.minutes,
+    data: focusData(input.kind, input.tag),
+    source,
+  });
+  await afterWrite(db, u, row.localDate);
+  return toDto(row);
+}
+
+/** Starts a timer; the running one stops first (one timer at a time). Idempotent by id. */
+export async function startFocus(
+  db: Db,
+  u: DayUser,
+  input: StartFocusInput,
+  source: "app" | "mcp",
+): Promise<FocusEntryDto> {
+  const done = await existing(db, u.id, input.id);
+  if (done) return done;
   const now = Date.now();
   const start = parseTime(input.time) ?? now;
   if (start > now + FUTURE_MS) throw new InvalidError("start is in the future");
-  if (input.minutes === undefined) await stopFocus(db, u, start);
+  await stopFocus(db, u, start);
   const row = await logEntry(db, u.id, u.tz, "focus", {
     id: input.id,
     occurredAt: start,
-    endedAt: input.minutes === undefined ? null : start + input.minutes * MIN,
+    endedAt: null,
     value: null,
-    data: { kind: input.kind, ...(input.tag ? { tag: input.tag } : {}) },
+    data: focusData(input.kind, input.tag),
     source,
   });
   await afterWrite(db, u, row.localDate);
@@ -246,8 +281,8 @@ export async function logFocus(
 }
 
 /**
- * A new start moves the session (a finished one keeps its length unless `minutes` is given);
- * `minutes` on a running timer stops it. `tag: null` removes the tag.
+ * `minutes` changes added minutes, or sets a timer's length (stopping it if it runs). `tag: null`
+ * removes the tag.
  */
 export async function updateFocus(
   db: Db,
@@ -257,24 +292,18 @@ export async function updateFocus(
 ): Promise<FocusEntryDto> {
   const current = await getEntry(db, u.id, "focus", id);
   if (!current) throw new NotFoundError("focus entry");
-  const start = parseTime(patch.time) ?? current.occurredAt;
-  const length = current.endedAt === null ? null : current.endedAt - current.occurredAt;
-  const endedAt =
-    patch.minutes !== undefined
-      ? start + patch.minutes * MIN
-      : length === null
-        ? null
-        : start + length;
-  if (endedAt === null && start > Date.now() + FUTURE_MS)
-    throw new InvalidError("start is in the future");
   const d = current.data as FocusData;
   const tag = patch.tag === undefined ? d.tag : (patch.tag ?? undefined);
+  const added = current.value !== null;
   const row = await updateEntry(db, u.id, u.tz, "focus", id, {
-    occurredAt: start,
-    endedAt,
-    data: { kind: d.kind, ...(tag ? { tag } : {}) },
+    ...(patch.minutes === undefined
+      ? {}
+      : added
+        ? { value: patch.minutes }
+        : { endedAt: current.occurredAt + patch.minutes * MIN }),
+    data: focusData(d.kind, tag),
   });
-  await afterWrite(db, u, row.localDate, current.localDate);
+  await afterWrite(db, u, row.localDate);
   return toDto(row);
 }
 

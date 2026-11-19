@@ -53,13 +53,14 @@ describe("focus tracker", () => {
         e("moderate", 45, "podcast"),
         e("moderate", 15),
         e("unfocus", 20),
+        { value: 10, occurredAt: 0, endedAt: null, data: { kind: "unfocus" as const } },
       ]),
     ).toEqual([
       { metric: "focus.deep_min", value: 120 },
       { metric: "focus.deep_sessions", value: 2 },
       { metric: "focus.moderate_min", dimension: "podcast", value: 45 },
       { metric: "focus.moderate_min", dimension: "", value: 15 },
-      { metric: "focus.unfocus_min", value: 20 },
+      { metric: "focus.unfocus_min", value: 30 },
     ]);
   });
 });

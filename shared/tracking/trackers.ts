@@ -68,10 +68,14 @@ const water: TrackerDef<WaterData> = {
   },
 };
 
+/** Added minutes (`value`), or a stopped timer's length. */
 const minutes = (e: TrackedEntry<unknown>) =>
-  e.endedAt === null ? 0 : Math.max(0, e.endedAt - e.occurredAt) / 60_000;
+  e.value ?? (e.endedAt === null ? 0 : Math.max(0, e.endedAt - e.occurredAt) / 60_000);
 
-/** Deep and moderate focus and unfocus. Running timers count once stopped, on the day they started. */
+/**
+ * Deep and moderate focus and unfocus: timers (counted once stopped, on the day they started) and
+ * minutes added afterwards.
+ */
 const focus: TrackerDef<FocusData> = {
   key: "focus",
   kind: "session",
@@ -84,7 +88,7 @@ const focus: TrackerDef<FocusData> = {
     METRICS.focusUnfocus.id,
   ],
   metrics(entries) {
-    const done = entries.filter((e) => e.endedAt !== null);
+    const done = entries.filter((e) => e.endedAt !== null || e.value !== null);
     const of = (k: FocusData["kind"]) => done.filter((e) => e.data.kind === k);
     const sum = (es: readonly TrackedEntry<FocusData>[]) =>
       Math.round(es.reduce((n, e) => n + minutes(e), 0));

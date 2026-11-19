@@ -20,6 +20,7 @@ function inputs(entries: E[], sleep: [string, SleepQuality, string][] = []): Foc
       tag: null,
       startedAt: at(from),
       endedAt: to ? at(to) : null,
+      minutes: null,
       localDate: localDate(at(from), "UTC"),
       source: "app",
     })),
@@ -121,5 +122,44 @@ describe("focus model", () => {
     expect(st.minEnergy).toBe(12);
     expect(st.lowMin.urgent).toBeGreaterThan(0);
     expect(st.lowMin.suggest).toBeGreaterThan(st.lowMin.recommend);
+  });
+
+  it("applies minutes added afterwards at once, without a time of day", () => {
+    const base = inputs([], good);
+    const lump = (kind: FocusKind, min: number, iso: string, id: string) => ({
+      id,
+      kind,
+      tag: null,
+      startedAt: at(iso),
+      endedAt: null,
+      minutes: min,
+      localDate: "2026-11-18",
+      source: "app" as const,
+    });
+    // Two 60-min deep lumps added at the same moment both count: 9 extra drain each.
+    const twice = {
+      ...base,
+      entries: [
+        lump("deep", 60, "2026-11-18T12:00:00Z", "a"),
+        lump("deep", 60, "2026-11-18T12:00:00Z", "b"),
+      ],
+    };
+    const s = focusState(twice, at("2026-11-18T12:00:00Z"));
+    expect(s.energy).toBe(100 - 15 - 18);
+    expect(s.deepMin).toBe(120);
+    expect(s.deepSessions).toBe(2);
+    expect(s.running).toBeNull();
+    // 20 min unfocus from 34: the restore curve (44.2) plus the paused baseline (1).
+    const rest = {
+      ...base,
+      entries: [
+        lump("deep", 330, "2026-11-18T08:00:00Z", "c"),
+        lump("unfocus", 20, "2026-11-18T08:00:00Z", "d"),
+      ],
+    };
+    // 100 − 3 (07–08) − 49.5 (330 min × 9/h) = 47.5; then 20 min restore.
+    const r = focusState(rest, at("2026-11-18T08:00:00Z"));
+    expect(r.energy).toBe(Math.round((47.5 + 25) * Math.exp(0.16) - 25 + 1));
+    expect(r.unfocusMin).toBe(20);
   });
 });

@@ -9,10 +9,12 @@ export interface FocusEntryDto {
   id: string;
   kind: FocusKind;
   tag: string | null;
-  /** Unix ms. */
+  /** Unix ms: when a timer started, or when minutes were added. */
   startedAt: number;
-  /** Null while the timer runs. */
+  /** When a timer stopped; null while it runs and for added minutes. */
   endedAt: number | null;
+  /** Minutes added afterwards (applied when added, no time of day); null for timers. */
+  minutes: number | null;
   localDate: string;
   source: "app" | "mcp";
 }

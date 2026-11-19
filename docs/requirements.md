@@ -432,9 +432,10 @@ out. It is a second configuration of the level engine.
   → 58 → 2 h focus → 34 (recommend) → 20 min unfocus → ~44 → 2 h film (moderate) → 32.
 
 **Logging**
-- Deep and moderate focus sessions: both a live start/stop timer and adding afterwards (start time +
-  minutes) are first-class. A moderate session has a tag (podcast, film, reading, ...).
-- Unfocus: add minutes (or timer); optional type tag later (walk, nap/NSDR, meditation, nature).
+- Deep and moderate focus and unfocus: a live start/stop timer, or minutes added afterwards. Added
+  minutes have no time of day (see "Added minutes" below). A moderate session has a tag (podcast,
+  film, reading, ...). An optional type tag for unfocus comes later (walk, nap/NSDR, meditation,
+  nature).
 - Sleep quality: one tap (good / ok / bad); the focus widget asks for it until it is set for the day.
 
 **Views**
@@ -447,11 +448,11 @@ out. It is a second configuration of the level engine.
 - state: `get_focus_state` (energy, ceiling, sleep, state, the running timer, `next`, today's
   minutes)
 - logging:
-  - `log_focus_session(tier deep | moderate, minutes, time?, tag?, id?)` and `log_unfocus(minutes,
-    time?, id?)`, for sessions logged afterwards;
+  - `log_focus_session(tier deep | moderate, minutes, tag?, id?)` and `log_unfocus(minutes, id?)`,
+    for minutes added afterwards (no time of day);
   - `start_focus(kind deep | moderate | unfocus, tag?)` and `stop_focus(time?)`, for timers;
   - `set_sleep_quality(quality, date?)`.
-- entries: `list_focus(date | from–to)`, `update_focus_entry` and `delete_focus_entry`
+- entries: `list_focus(date | from–to)`, `update_focus_entry` (minutes, tag) and `delete_focus_entry`
 - settings: `get_focus_settings`, `set_focus_settings`
 
 Web Push reminders (for focus and water) are in the backlog.
@@ -469,6 +470,11 @@ Web Push reminders (for focus and water) are in the backlog.
   - Setting sleep before the wake time starts the day at that tap, and counts as awake.
   - Until sleep is set, the default (ok: start 85, ceiling 90) is assumed, and the home tile asks for
     it.
+- **Added minutes** have no time of day. They apply at once when added, so they never overlap
+  anything, and two in a row both count:
+  - deep or moderate: the tier's drain beyond the baseline, which already ran for that time (30 min of
+    deep focus is −4.5);
+  - unfocus: the restore over that many minutes from the current energy, plus the baseline it paused.
 - **One timer at a time:** starting a timer stops the running one. A timer stopped within a minute was
   a mis-tap and is removed.
 - **Forecast:** `next` is the next threshold crossed if the current activity continues, for example
@@ -483,9 +489,10 @@ Web Push reminders (for focus and water) are in the backlog.
   - the sleep picker, which stays changeable;
   - energy with the forecast, and a 0–100 bar with ticks at the thresholds;
   - today's minutes per tier;
-  - the day's sessions; tap one to change its start, length or tag, or delete it;
-  - in the footer: the running timer with Stop, start buttons for deep, moderate (pick a tag) and
-    unfocus, and "+" to add a session afterwards;
+  - the day's sessions; tap one to change its length or tag, or delete it;
+  - in the footer: the running timer with Stop, one Start button, and "+" to add minutes. Start
+    opens a sheet to pick deep, moderate (or one of its tags) or unfocus. "+" asks for the kind, the
+    tag and the minutes, with no time;
   - settings.
 - **Metrics:**
   - for every day: `focus.deep_min`, `focus.deep_sessions`, `focus.moderate_min` (dimension: tag),
@@ -496,8 +503,10 @@ Web Push reminders (for focus and water) are in the backlog.
 
 **Implementation notes**
 - Two trackers:
-  - `focus` (session): the start is in `occurred_at` and the end in `ended_at` (null while running);
-    the kind and tag are in `data`;
+  - `focus` (session), with the kind and tag in `data`:
+    - timers: the start is in `occurred_at`, the end in `ended_at` (null while running);
+    - added minutes: the minutes are in `value`, and `occurred_at` is when they were added. In the
+      level engine they are entries with an instant effect; timers are spans.
   - `sleep` (choice): one entry per local date, value 3 / 2 / 1.
 - No new table and no migration.
 - The simulation is `shared/focus/model.ts`. Like water, the API returns its inputs, and the PWA runs
@@ -626,4 +635,5 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Focus: one timer at a time (starting one stops the running one); the home tile starts or stops deep focus; until sleep is set, "ok" is assumed. |
 | 2026-11-19 | Level engine extended with spans and affine rates (response curves); a daily ceiling is the per-day model's max. Closed-day rollups are finalised by one shared mechanism for water and focus. |
 | 2026-11-19 | Design: focus screen with energy, forecast and a threshold bar (no curve); home focus tile with energy and a bar. |
+| 2026-11-19 | Focus minutes added afterwards have no time of day and apply at once when added (no overlaps). One Start button opens a sheet to pick the kind, instead of a start button per kind. |
 | 2026-11-19 | Focus energy restarts each day at wake; no carry-over. Rate precedence: unfocus, deep, moderate, baseline. Setting sleep before the wake time starts the day early. |

@@ -236,8 +236,9 @@ The three shared engines (tracking, level, metrics) are described in
   day schedule comes from `user`. `metric_daily` holds `water.intake_ml`, `water.target_ml` (days with
   water) and `water.at_cap_min`. The last one is written lazily for closed days; the last finalised
   date is kept in `user_setting` key `water.finalized`.
-- **Focus**: sessions are `focus` entries (`occurred_at` start, `ended_at` end, null while a timer
-  runs; kind deep / moderate / unfocus and tag in `data`). Sleep quality is one `sleep` entry per local
+- **Focus**: sessions are `focus` entries (kind deep / moderate / unfocus and tag in `data`). Timers
+  have `occurred_at` start and `ended_at` end (null while running); minutes added afterwards have the
+  minutes in `value` and no time of day. Sleep quality is one `sleep` entry per local
   date (value 3 / 2 / 1). Settings in `user_setting` key `focus`. `metric_daily` holds the minutes per
   tier and `sleep.quality` on every write. For closed days it also holds `focus.min_energy` and the
   minutes at or below each threshold, written through the same lazy finalisation as water

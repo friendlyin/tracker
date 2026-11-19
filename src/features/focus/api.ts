@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { focusState } from "../../../shared/focus/model";
+import { focusState, isRunning } from "../../../shared/focus/model";
 import type { FocusKind } from "../../../shared/focus/schemas";
 import {
   applyFocusSettingsPatch,
@@ -39,7 +39,7 @@ export const useFocusSettings = () =>
 /** The simulated state, re-run every minute (every 15 s while a timer runs). */
 export function useFocusState() {
   const { data } = useFocusDay();
-  const running = data?.entries.some((e) => e.endedAt === null) ?? false;
+  const running = data?.entries.some(isRunning) ?? false;
   const tick = useNow(running ? 15_000 : 60_000);
   // Simulate at the real current time: a write since the last tick must count.
   // biome-ignore lint/correctness/useExhaustiveDependencies: tick re-runs it
@@ -70,55 +70,57 @@ function useFocusWrite<V>(
   });
 }
 
-/** Like the server: a timer stopped within a minute is dropped. */
+/** Like the server: stops running timers; one stopped within a minute is dropped. */
 const stopAll = (entries: FocusEntryDto[], at: number) =>
   entries
-    .filter((e) => e.endedAt !== null || at - e.startedAt >= MIN)
-    .map((e) => (e.endedAt === null ? { ...e, endedAt: at } : e));
+    .filter((e) => !isRunning(e) || at - e.startedAt >= MIN)
+    .map((e) => (isRunning(e) ? { ...e, endedAt: at } : e));
 
-export interface LogFocus {
-  kind: FocusKind;
-  tag?: string;
-  /** Start (Unix ms). */
-  at: number;
-  /** Omit to start a timer. */
-  minutes?: number;
-}
+const newEntry = (
+  d: FocusInputsDto,
+  v: { id: string; kind: FocusKind; tag?: string; at: number; minutes: number | null },
+): FocusEntryDto => ({
+  id: v.id,
+  kind: v.kind,
+  tag: v.tag ?? null,
+  startedAt: v.at,
+  endedAt: null,
+  minutes: v.minutes,
+  localDate: localDate(v.at, d.tz),
+  source: "app",
+});
 
-function useLogFocus() {
-  return useFocusWrite(
-    (v: LogFocus & { id: string }) =>
-      api<FocusInputsDto>("/focus/entries", {
-        body: { id: v.id, kind: v.kind, tag: v.tag, time: iso(v.at), minutes: v.minutes },
-      }),
-    (d, v) => {
-      const entry: FocusEntryDto = {
-        id: v.id,
-        kind: v.kind,
-        tag: v.tag ?? null,
-        startedAt: v.at,
-        endedAt: v.minutes === undefined ? null : v.at + v.minutes * MIN,
-        localDate: localDate(v.at, d.tz),
-        source: "app",
-      };
-      const rest = v.minutes === undefined ? stopAll(d.entries, v.at) : d.entries;
-      return { ...d, entries: [...rest, entry] };
-    },
-  );
-}
+type Added = { id: string; kind: FocusKind; tag?: string; minutes: number; at: number };
+type Started = { id: string; kind: FocusKind; tag?: string; at: number };
 
-/** `log(...)` adds a session (or starts a timer) and returns its id. */
+/** `add` logs minutes done earlier (they apply now); `start` starts a timer. Both return the id. */
 export function useFocusLog() {
-  const m = useLogFocus();
+  const add = useFocusWrite(
+    (v: Added) =>
+      api<FocusInputsDto>("/focus/entries", {
+        body: { id: v.id, kind: v.kind, tag: v.tag, minutes: v.minutes },
+      }),
+    (d, v) => ({ ...d, entries: [...d.entries, newEntry(d, v)] }),
+  );
+  const start = useFocusWrite(
+    (v: Started) =>
+      api<FocusInputsDto>("/focus/start", {
+        body: { id: v.id, kind: v.kind, tag: v.tag, time: iso(v.at) },
+      }),
+    (d, v) => ({
+      ...d,
+      entries: [...stopAll(d.entries, v.at), newEntry(d, { ...v, minutes: null })],
+    }),
+  );
   return {
-    log: (v: LogFocus) => {
+    add: (kind: FocusKind, minutes: number, tag?: string) => {
       const id = uuidv7();
-      m.mutate({ ...v, id });
+      add.mutate({ id, kind, tag, minutes, at: Date.now() });
       return id;
     },
     start: (kind: FocusKind, tag?: string) => {
       const id = uuidv7();
-      m.mutate({ kind, tag, at: Date.now(), id });
+      start.mutate({ id, kind, tag, at: Date.now() });
       return id;
     },
   };
@@ -134,7 +136,6 @@ export function useStopFocus() {
 
 export interface FocusPatch {
   id: string;
-  at?: number;
   minutes?: number;
   tag?: string | null;
 }
@@ -144,26 +145,17 @@ export function useUpdateFocus() {
     (v: FocusPatch) =>
       api<FocusInputsDto>(`/focus/entries/${v.id}`, {
         method: "PATCH",
-        body: {
-          time: v.at === undefined ? undefined : iso(v.at),
-          minutes: v.minutes,
-          tag: v.tag,
-        },
+        body: { minutes: v.minutes, tag: v.tag },
       }),
     (d, v) => ({
       ...d,
       entries: d.entries.map((e) => {
         if (e.id !== v.id) return e;
-        const start = v.at ?? e.startedAt;
-        const length = e.endedAt === null ? null : e.endedAt - e.startedAt;
-        const endedAt =
-          v.minutes !== undefined
-            ? start + v.minutes * MIN
-            : length === null
-              ? null
-              : start + length;
         const tag = v.tag === undefined ? e.tag : v.tag;
-        return { ...e, startedAt: start, endedAt, tag, localDate: localDate(start, d.tz) };
+        if (v.minutes === undefined) return { ...e, tag };
+        return e.minutes !== null
+          ? { ...e, tag, minutes: v.minutes }
+          : { ...e, tag, endedAt: e.startedAt + v.minutes * MIN };
       }),
     }),
   );
