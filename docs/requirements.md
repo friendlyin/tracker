@@ -175,10 +175,10 @@ The app shell and everything a deploy needs, running locally. The deploy itself 
 Weekly-volume-driven gym logging where exercises are chosen in the gym.
 
 **Muscle groups and targets**
-- 8 groups: chest, back, shoulders, biceps, triceps, quads, hamstrings & glutes, core.
+- 9 groups: chest, back, shoulders, biceps, triceps, quads, hamstrings & glutes, core, calves.
 - Each group is **major** or **minor**. Weekly working-set targets are set per category in settings:
   major 12, minor 9. The category of each group can be changed in settings.
-  Default: minor = biceps, triceps, core; major = chest, back, shoulders, quads, hamstrings & glutes.
+  Default: minor = biceps, triceps, core, calves; major = chest, back, shoulders, quads, hamstrings & glutes.
 
 **Exercises and muscle contributions**
 - Each exercise has a contribution per muscle group: 1.0 for primary groups, 0.5 for secondary (0.25
@@ -685,3 +685,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Focus minutes added afterwards have no time of day and apply at once when added (no overlaps). One Start button opens a sheet to pick the kind, instead of a start button per kind. |
 | 2026-11-19 | Focus energy restarts each day at wake; no carry-over. Rate precedence: unfocus, deep, moderate, baseline. Setting sleep before the wake time starts the day early. |
 | 2026-11-19 | Offline: an own outbox in IndexedDB instead of TanStack's paused mutations. Those pause only when the browser reports offline (iOS often reports online with no usable signal), are lost when a deploy clears the cache, and need every mutation registered globally. |
+| 2026-11-19 | Calves added as a minor muscle group. Library exercises added in later releases reach existing users: the exercise list inserts seed exercises whose key the user has none of. Each muscle group's category has its own default, so stored settings stay valid when a group is added. |

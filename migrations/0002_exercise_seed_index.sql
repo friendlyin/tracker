@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `exercise_user_seed_idx` ON `exercise` (`user_id`,`seed_key`);

@@ -7,6 +7,7 @@ export const MUSCLE_GROUPS = [
   "quads",
   "hams_glutes",
   "core",
+  "calves",
 ] as const;
 
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
@@ -21,6 +22,7 @@ export const GROUP_LABELS: Record<MuscleGroup, string> = {
   quads: "Quads",
   hams_glutes: "Hamstrings & glutes",
   core: "Core",
+  calves: "Calves",
 };
 
 export const DEFAULT_CATEGORIES: Record<MuscleGroup, GroupCategory> = {
@@ -32,6 +34,7 @@ export const DEFAULT_CATEGORIES: Record<MuscleGroup, GroupCategory> = {
   quads: "major",
   hams_glutes: "major",
   core: "minor",
+  calves: "minor",
 };
 
 export function isMuscleGroup(v: string): v is MuscleGroup {

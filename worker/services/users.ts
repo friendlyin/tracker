@@ -29,11 +29,11 @@ export async function ensureUser(db: Db, email: string, timezone: string): Promi
   return created;
 }
 
-/** Copies the generic starter library into the user's own exercises. */
-async function seedExercises(db: Db, userId: string, now: number) {
+/** Copies the generic starter library (or the given part of it) into the user's own exercises. */
+export async function seedExercises(db: Db, userId: string, now: number, seeds = SEED_EXERCISES) {
   const exRows: (typeof exercise.$inferInsert)[] = [];
   const muscleRows: (typeof exerciseMuscle.$inferInsert)[] = [];
-  SEED_EXERCISES.forEach((s, i) => {
+  seeds.forEach((s, i) => {
     const id = uuidv7(now + i);
     exRows.push({
       id,
@@ -98,4 +98,23 @@ export async function putSetting(db: Db, userId: string, key: string, value: unk
       target: [userSetting.userId, userSetting.key],
       set: { value, updatedAt: now },
     });
+}
+
+/**
+ * Library exercises added in a later release reach existing users too: inserts the ones whose key the
+ * user has none of. Archived or renamed copies keep their key, so they are not added again. Returns
+ * whether it added any.
+ */
+export async function addMissingSeedExercises(db: Db, userId: string, keys: (string | null)[]) {
+  const have = new Set(keys);
+  const missing = SEED_EXERCISES.filter((s) => !have.has(s.key));
+  if (missing.length === 0) return false;
+  try {
+    await seedExercises(db, userId, Date.now(), missing);
+  } catch (e) {
+    // A concurrent request added them first (unique per user and key); the batch rolled back.
+    console.warn("seed exercises:", e);
+    return false;
+  }
+  return true;
 }

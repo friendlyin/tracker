@@ -11,12 +11,14 @@ export const workoutSettingsSchema = z.object({
       minor: z.number().int().min(0).max(40),
     })
     .default({ major: 12, minor: 9 }),
+  // Each group has its own default, so stored settings from before a group was added stay valid.
   categories: z
     .object(
-      Object.fromEntries(MUSCLE_GROUPS.map((g) => [g, category])) as Record<
-        (typeof MUSCLE_GROUPS)[number],
-        typeof category
-      >,
+      Object.fromEntries(
+        MUSCLE_GROUPS.map((g) => [g, category.default(DEFAULT_CATEGORIES[g])]),
+      ) as {
+        [G in (typeof MUSCLE_GROUPS)[number]]: z.ZodDefault<typeof category>;
+      },
     )
     .default(DEFAULT_CATEGORIES),
   workoutsPerWeek: z.number().int().min(1).max(7).default(3),

@@ -14,6 +14,19 @@ describe("workout settings", () => {
     expect(parseWorkoutSettings({ workoutsPerWeek: 99 }).workoutsPerWeek).toBe(3);
   });
 
+  it("keeps stored settings that predate a muscle group", () => {
+    const { calves: _, ...older } = parseWorkoutSettings({}).categories;
+    const s = parseWorkoutSettings({
+      targets: { major: 10, minor: 6 },
+      categories: { ...older, core: "major" },
+      workoutsPerWeek: 4,
+    });
+    expect(s.targets).toEqual({ major: 10, minor: 6 });
+    expect(s.workoutsPerWeek).toBe(4);
+    expect(s.categories.core).toBe("major");
+    expect(s.categories.calves).toBe("minor");
+  });
+
   it("applies partial patches", () => {
     const s = applyWorkoutSettingsPatch(parseWorkoutSettings({}), {
       targets: { minor: 6 },

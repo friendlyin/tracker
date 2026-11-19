@@ -45,7 +45,7 @@ describe("planWeek", () => {
     const biceps = plan.groups.find((g) => g.group === "biceps");
     expect(chest).toMatchObject({ target: 12, todayTarget: 4, leftToday: 4, status: "ok" });
     expect(biceps).toMatchObject({ target: 9, todayTarget: 3, status: "ok" });
-    expect(plan.totals.target).toBe(5 * 12 + 3 * 9);
+    expect(plan.totals.target).toBe(5 * 12 + 4 * 9);
   });
 
   it("limits remaining workouts by days left and flags groups at risk", () => {

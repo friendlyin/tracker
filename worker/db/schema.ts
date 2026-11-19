@@ -1,4 +1,12 @@
-import { index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 // Every user-owned table has `user_id`, and every query filters by it (see CLAUDE.md).
 // Instants are Unix milliseconds (UTC). Entries also store `tz` and the derived `local_date`.
@@ -58,7 +66,11 @@ export const exercise = sqliteTable(
     archivedAt: integer("archived_at"),
     ...timestamps,
   },
-  (t) => [index("exercise_user_idx").on(t.userId)],
+  (t) => [
+    index("exercise_user_idx").on(t.userId),
+    // One copy of each library exercise per user (null keys, custom exercises, never collide).
+    uniqueIndex("exercise_user_seed_idx").on(t.userId, t.seedKey),
+  ],
 );
 
 export const exerciseMuscle = sqliteTable(

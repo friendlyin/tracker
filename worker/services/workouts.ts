@@ -31,7 +31,7 @@ import { exercise, exerciseMuscle, workout, workoutSet } from "../db/schema";
 import { InvalidError, NotFoundError } from "./errors";
 import { recomputeWorkoutDay } from "./metrics";
 import { recomputeNutritionTargets } from "./nutrition";
-import { getSetting, putSetting } from "./users";
+import { addMissingSeedExercises, getSetting, putSetting } from "./users";
 
 // Workout domain logic. Every function takes the authenticated userId and filters by it. The API
 // routes and the MCP tools are thin wrappers over these functions. Creating or deleting a workout
@@ -500,7 +500,11 @@ export async function listExercises(
   opts: { includeArchived?: boolean } = {},
 ): Promise<ExerciseDto[]> {
   const since = Date.now() - RECENT_USAGE_MS;
-  const [exRows, muscleRows, usageRows] = await Promise.all([
+  const [seedRows, exRows, muscleRows, usageRows] = await Promise.all([
+    db
+      .select({ key: exercise.seedKey })
+      .from(exercise)
+      .where(and(eq(exercise.userId, userId), isNotNull(exercise.seedKey))),
     db
       .select()
       .from(exercise)
@@ -520,6 +524,15 @@ export async function listExercises(
       .where(and(eq(workoutSet.userId, userId), eq(workoutSet.kind, "working")))
       .groupBy(workoutSet.exerciseId),
   ]);
+  if (
+    await addMissingSeedExercises(
+      db,
+      userId,
+      seedRows.map((r) => r.key),
+    )
+  ) {
+    return listExercises(db, userId, opts);
+  }
 
   const muscles = new Map<string, ExerciseDto["muscles"]>();
   for (const m of muscleRows) {

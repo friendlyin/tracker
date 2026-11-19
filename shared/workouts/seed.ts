@@ -318,6 +318,31 @@ export const SEED_EXERCISES: SeedExercise[] = [
     reps: [6, 12],
     muscles: { core: 1 },
   },
+  // Calves
+  {
+    key: "calf_press_leg_press",
+    name: "Calf press on leg press",
+    equipment: "machine",
+    sets: 3,
+    reps: [10, 15],
+    muscles: { calves: 1 },
+  },
+  {
+    key: "standing_calf_raise",
+    name: "Standing calf raise",
+    equipment: "machine",
+    sets: 3,
+    reps: [10, 15],
+    muscles: { calves: 1 },
+  },
+  {
+    key: "seated_calf_raise",
+    name: "Seated calf raise",
+    equipment: "machine",
+    sets: 3,
+    reps: [10, 15],
+    muscles: { calves: 1 },
+  },
 ];
 
 /** Stepper increment for weights; dumbbell weights are per dumbbell. */
