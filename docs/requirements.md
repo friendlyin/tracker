@@ -18,8 +18,8 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 3 | Nutrition + tracking engine + local MCP server | ✅ |
 | 4 | Water + level engine | ✅ |
 | 5 | Focus energy | ✅ |
-| 6 | Deploy to Cloudflare, login, connect Claude | next |
-| 7 | Stats engine and Overview | |
+| 6 | Deploy to Cloudflare, login, connect Claude | ✅ |
+| 7 | Stats engine and Overview | next |
 | 8 | Offline-proof logging | |
 | 9 | WHOOP | |
 | 10 | Habits | |
@@ -522,7 +522,7 @@ Web Push reminders (for focus and water) are in the backlog.
 
 **Status:** done (2026-11-19).
 
-## Iteration 6: Deploy to Cloudflare, login, connect Claude
+## Iteration 6: Deploy to Cloudflare, login, connect Claude ✅
 
 Everything from iterations 1–5 goes live on your own Cloudflare account.
 
@@ -539,7 +539,8 @@ Everything from iterations 1–5 goes live on your own Cloudflare account.
   server; `/authorize` stays behind Access (the user logs in with the email code, then allows the
   client on a consent page); `/mcp`, `/token`, `/register` and `/.well-known/` bypass Access. Claude
   stays connected while used (refresh grant with a 30-day idle expiry). No secrets; OAuth state in
-  KV (`OAUTH_KV`, created on deploy). MCP server version 0.6.0.
+  KV (`OAUTH_KV`, created on deploy). MCP server version 0.6.0. Verified: claude.ai connects with
+  its published identity (client ID metadata document).
 - Install the PWA on the phone. ✅ Production starts fresh; local test data stays local.
 
 ## Iteration 7: Stats engine and Overview

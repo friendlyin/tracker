@@ -7,8 +7,9 @@ photo, read your history and give you insights. The app itself contains no AI.
 Built for one person or a household: each person has their own account and sees only their own data.
 
 > **Status: early development.** Features are built in iterations (see [the plan](docs/requirements.md)).
-> Usable so far: the home screen, workouts, nutrition, water and focus energy (✅), and Claude Code on your computer
-> through the local MCP server.
+> Usable so far: workouts, nutrition, water and focus energy (✅), deployed on your own Cloudflare
+> account with email-code login, and Claude (claude.ai, the Claude apps, Claude Code) connected
+> through MCP.
 
 ## Features (planned)
 
@@ -55,19 +56,21 @@ You need:
 [docs/cloudflare-setup.md](docs/cloudflare-setup.md).
 
 1. **Fork** this repository, then clone your fork and run `pnpm install`.
-2. **Deploy from GitHub.** In the Cloudflare dashboard, go to Workers & Pages → Create → Import a
+2. **Deploy from GitHub.** In the Cloudflare dashboard, go to Compute → Workers & Pages → Create → Import a
    repository and pick your fork.
    - Build command: `pnpm build`
    - Deploy command: `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote`
 
-   The first deploy creates the database.
+   The first deploy creates the database and the storage for Claude's logins.
 3. **Turn on login.** In Zero Trust, add a self-hosted Access application for the Worker's address
-   with a policy that allows your exact email (plus anyone you invite).
+   with a policy that allows your exact email (plus anyone you invite), and a second one that
+   bypasses login for Claude's endpoints (`/mcp`, `/token`, `/register`, `/.well-known`).
 4. **Add secrets** with `pnpm wrangler secret put ...`. The Access team domain and audience tag.
 5. **Install on your phone.** iPhone: open the URL in Safari → Share → Add to Home Screen. Android:
    Chrome → menu → Install app.
 6. **Connect Claude.** In claude.ai, go to Settings → Connectors → Add custom connector, enter
-   `https://<your-app>/mcp`, log in with the email code and allow it.
+   `https://<your-app>/mcp`, choose Claude's published identity as the OAuth client, log in with the
+   email code and allow it.
 
 Every push to your fork's `main` branch redeploys automatically.
 
@@ -95,7 +98,7 @@ claude mcp add --transport http tracker-dev http://localhost:5173/mcp
 ```
 
 Then ask it, for example, to log a meal from a photo. Photos are never sent to the app; Claude sends the
-estimated numbers. claude.ai and the Claude apps need the deployed app with OAuth (iteration 6).
+estimated numbers. claude.ai and the Claude apps connect to the deployed app (see step 6 above).
 
 | Command | |
 |---|---|

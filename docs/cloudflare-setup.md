@@ -6,7 +6,8 @@ account-specific ids. The terminal (`wrangler`) handles secrets, migrations and 
 is used to connect GitHub, configure login (Access), and read logs.
 
 Dashboard: https://dash.cloudflare.com. The left sidebar groups products. Workers are under
-**Compute (Workers) → Workers & Pages**, databases under **Storage & databases**. Cloudflare sometimes
+**Compute → Workers & Pages**, databases under **Storage & databases**, login (Access) under
+**Protect & connect → Zero Trust**. Cloudflare sometimes
 renames menu items; if a name doesn't match, use the search box at the top of the dashboard.
 
 Placeholders used below: `<subdomain>` (your workers.dev subdomain), `<team>` (your Zero Trust team
@@ -26,7 +27,7 @@ Steps are grouped by the iteration that needs them.
    (very high) limits, requests fail until the daily reset.
 
 ### A2. Choose your workers.dev subdomain
-1. Sidebar → **Compute (Workers) → Workers & Pages**.
+1. Sidebar → **Compute → Workers & Pages**.
 2. On first visit Cloudflare asks you to pick a subdomain. The app will be at
    `https://tracker.<subdomain>.workers.dev`. Pick something that doesn't need to be your name; it is
    public.
@@ -50,17 +51,16 @@ deploys on every push to it. If the code is already in a repository of yours, sk
    ```
 
 ### A5. First deploy from GitHub
-1. **Workers & Pages → Create application → Import a repository** → connect GitHub (grant access only
+1. **Compute → Workers & Pages → Create application → Import a repository** → connect GitHub (grant access only
    to this repository) → select it.
 2. Settings on the next screen:
    - **Project name:** `tracker`. It must match `name` in `wrangler.jsonc`.
    - **Build command:** `pnpm build`
    - **Deploy command:** `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote`
-3. Click **Deploy**. On the first deploy wrangler creates the D1 database because the binding has no id.
-   Then the migrations create the tables.
-   - To verify on the first deploy: if the migration step can't find the auto-created database, copy its id
-     from the dashboard into `wrangler.jsonc` (`database_id`). It is not personal data or a secret; forks
-     only have to change that one line.
+3. Click **Deploy**. Because the bindings in `wrangler.jsonc` have no ids, the first deploy creates
+   the D1 database (`tracker-db`) and the KV namespace for Claude's logins (`tracker-oauth-kv`), and
+   later deploys reuse them. Then the migrations create the tables. Nothing to copy into the
+   repository.
 4. Every push to `main` now deploys. Build logs are under **Deployments**.
 5. Don't run `pnpm deploy` from your computer for the first deploy. A local deploy writes the new
    database id into `wrangler.jsonc`, and it shouldn't be committed.
@@ -74,8 +74,8 @@ Where to look afterwards: **Workers & Pages → tracker**:
   (SQL) and **Time Travel** (backups).
 
 ### A6. Login with Cloudflare Access
-See [architecture.md §3](architecture.md#3-authentication) for why. The Zero Trust sidebar is under
-**Protect & connect → Zero Trust**.
+See [architecture.md §3](architecture.md#3-authentication) for why. Zero Trust is in the sidebar under
+**Protect & connect → Zero Trust**; the steps below name its sub-menus.
 
 1. **Create the Zero Trust organization** (once): sidebar → **Zero Trust**.
    1. Pick a team name. It becomes the login domain `<team>.cloudflareaccess.com` (shown later under
@@ -118,16 +118,13 @@ See [architecture.md §3](architecture.md#3-authentication) for why. The Zero Tr
    Claude, so it stays behind the login. Check in a private window: `https://<app-host>/mcp` answers
    with an error (401) and no login page; `https://<app-host>/authorize` shows the login page.
 
-If logging in on the iPhone (A8) or step 6 fails, we switch to the fallback (Better Auth, email +
-password).
-
 ### A7. Secrets
 Secrets are keys and settings the Worker needs that must not be in the repository.
 ```bash
 pnpm wrangler secret put ACCESS_TEAM_DOMAIN   # https://<team>.cloudflareaccess.com
 pnpm wrangler secret put ACCESS_AUD           # the AUD tag from A6
 ```
-Dashboard alternative: **Workers & Pages → tracker → Settings → Variables and Secrets → + Add** →
+Dashboard alternative: **Compute → Workers & Pages → tracker → Settings → Variables and Secrets → + Add** →
 Type **Secret** → name + value → **Deploy**. Values stay hidden after saving.
 
 For local development, copy `.dev.vars.example` to `.dev.vars` (git-ignored). Locally the app has no
@@ -155,8 +152,9 @@ shell still loads but shows no data.
   ```
 
 ### A10. Later: custom domain
-Not needed; the `workers.dev` address is fine. If you switch later, reconnect Claude (B1) and
-re-install the PWA. Access path rules are simplest on a custom domain.
+Not needed; the `workers.dev` address is fine. If you switch later: change the destinations of both
+Access applications (A6 steps 4 and 6) to the new hostname, reconnect Claude (B1) and re-install the
+PWA.
 1. If you need a domain: sidebar → **Domain Registration → Register Domains**. Cloudflare sells at cost,
    roughly $10/year for `.com`.
 2. **Workers & Pages → tracker → Settings → Domains & Routes → + Add → Custom domain** → enter the
@@ -170,14 +168,17 @@ re-install the PWA. Access path rules are simplest on a custom domain.
 
 Claude connects with OAuth, run by the Worker. Logging in is the same Access email code as the app,
 then an **Allow** page. Nothing to set up beyond A6 step 6:
-- The OAuth storage (KV namespace `OAUTH_KV`) is created on the first deploy, like the database. To
-  look at it: **Storage & databases → Workers KV**.
+- The OAuth storage (KV namespace `tracker-oauth-kv`) is created on the first deploy (A5). To look at
+  it: **Storage & databases → Workers KV**.
 - No secrets.
 
 ### B1. Connect Claude
 - **claude.ai** (web; then also available in the desktop and mobile apps): Settings → **Connectors** →
-  **Add custom connector** → URL `https://<app-host>/mcp` → **Connect** → log in with the email code
-  → **Allow**.
+  **Add custom connector** → URL `https://<app-host>/mcp`.
+  - **OAuth client:** choose **Claude's published identity** (a client ID metadata document). The
+    Allow page then shows "Published by claude.ai". If that fails, **Register automatically** (dynamic
+    registration) also works. "Your own OAuth client" is not supported.
+  - **Connect** → log in with the email code → **Allow**.
 - **Claude Code:** `claude mcp add --transport http tracker https://<app-host>/mcp`, then run `/mcp`
   inside Claude Code and log in the same way.
 
