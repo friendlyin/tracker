@@ -38,6 +38,9 @@ pnpm wrangler whoami    # shows your account
 ```
 
 ### A4. Put the code on GitHub
+Cloudflare builds from a GitHub repository you own: it installs its GitHub app on that repository and
+deploys on every push to it. If the code is already in a repository of yours, skip this step.
+
 1. Fork this repository on GitHub, or create a new **public** (or private) repository and push your
    clone to it:
    ```bash
@@ -71,30 +74,44 @@ Where to look afterwards: **Workers & Pages → tracker**:
   (SQL) and **Time Travel** (backups).
 
 ### A6. Login with Cloudflare Access
-See [architecture.md §3](architecture.md#3-authentication) for why.
+See [architecture.md §3](architecture.md#3-authentication) for why. The Zero Trust sidebar is under
+**Protect & connect → Zero Trust**.
 
 1. **Create the Zero Trust organization** (once): sidebar → **Zero Trust**.
-   1. Pick a team name. It becomes the login domain `<team>.cloudflareaccess.com`.
+   1. Pick a team name. It becomes the login domain `<team>.cloudflareaccess.com` (shown later under
+      Zero Trust → **Settings → Team domain**).
    2. Choose the **Free** plan. It may ask for a payment method even though it costs $0.
-2. **Check the login method:** Zero Trust → **Settings → Authentication → Login methods**.
-   **One-time PIN** is there by default (email + 6-digit code).
-3. **Protect the app:** **Workers & Pages → tracker → Settings → Domains & Routes**. On the
-   `workers.dev` row, enable **Cloudflare Access**. This creates an Access application for the Worker.
-4. **Allowlist:** Zero Trust → **Access → Applications** → open the new application → **Policies**.
-   1. Add a policy: Action **Allow**, Include → **Emails** → your email and those of the people you
-      invite. The allowlist lives only in the dashboard, never in the repository.
-   2. Set **Session duration** to **1 month** (the maximum), so login is rarely needed.
-5. **Values the Worker needs:** in the application's overview, copy the **Application Audience (AUD)
-   tag**, and store it and the team domain as secrets (A7).
-6. **Test on the iPhone:** open the URL in Safari, log in with the email code, Add to Home Screen, open
-   it from the home screen, close it, and open it again the next day.
-7. **Bypass for Claude** (needed for Part B; test it now): add a second Access application for
+2. **Add the login method:** Zero Trust → **Integrations → Identity providers**. If **One-time PIN**
+   (email + 6-digit code) isn't listed, **Add new identity provider → One-time PIN**. Newer
+   organizations no longer get it by default.
+3. **Create the allowlist policy:** Zero Trust → **Access controls → Policies → Add a policy**.
+   - Name: e.g. `Tracker users`. Action: **Allow**. Session duration: **1 month**.
+   - Include → **Emails** → your exact address and those of the people you invite. The allowlist lives
+     only in the dashboard, never in the repository.
+   - Don't use an **Email domain** rule with a public mail provider such as `gmail.com`: anyone with
+     an address there could log in, and the app creates an account for every email Access lets
+     through.
+4. **Protect the app** (after the first deploy in A5, so the Worker exists): Zero Trust → **Access
+   controls → Applications → Add an application → Self-hosted and private** → **Continue**. The tabs
+   in the middle of that dialog only switch the example diagram.
+   - Name: `tracker`. Destination: the `tracker` Worker, or the public hostname `<app-host>`.
+   - Policy: `Tracker users`. Login method: **One-time PIN**. Session duration: **1 month**.
+   - Save, then open `https://<app-host>` in a private window: the Cloudflare email-code page should
+     appear before the app.
+   - Don't use the Worker's own **Access** tab (**Protect this Worker behind Access**): its dialog
+     only offers an account-members policy or an email-domain policy, neither of which fits. The tab
+     may keep saying "not protected"; the address is protected anyway.
+5. **Values the Worker needs:** open the application → copy the **Application Audience (AUD) tag**.
+   The team domain is `https://<team>.cloudflareaccess.com`. Store both as secrets (A7).
+6. **Bypass for Claude** (needed for Part B; test it now): add a second Access application for
    the same host with the paths `/mcp`, `/authorize`, `/token`, `/register`, `/callback` and
    `/.well-known/`. Give it one policy with Action **Bypass**, Include **Everyone**. The Worker protects
-   these paths with its own OAuth. Check that `https://<app-host>/mcp` is reachable without the Access
-   login page.
+   these paths with its own OAuth. Check that `https://<app-host>/mcp` answers
+   `{"error":"unauthorized"}` instead of showing the Access login page (until Part B, `/mcp` accepts
+   no logins at all).
 
-If step 6 or 7 fails, we switch to the fallback (Better Auth, email + password).
+If logging in on the iPhone (A8) or step 6 fails, we switch to the fallback (Better Auth, email +
+password).
 
 ### A7. Secrets
 Secrets are keys and settings the Worker needs that must not be in the repository.
@@ -112,9 +129,10 @@ Until both secrets are set, the deployed API answers every request with 401 (it 
 shell still loads but shows no data.
 
 ### A8. Install the app on your iPhone
-1. Open the app URL in **Safari** (it must be Safari on iOS).
+1. Open the app URL in **Safari** (it must be Safari on iOS) and log in with the email code.
 2. Share → **Add to Home Screen** → Add.
-3. Open it from the home screen: it runs full-screen like an app.
+3. Open it from the home screen: it runs full-screen like an app. Close it and open it again the next
+   day: it should not ask for the code again (the session lasts a month).
 
 ### A9. Backups
 - **Automatic:** D1 Time Travel keeps point-in-time history (7 days on Free, 30 days on Paid).
@@ -147,7 +165,7 @@ The code adds an `OAUTH_KV` binding without an id to `wrangler.jsonc`. The next 
 creates the namespace. To check in the dashboard: **Storage & databases → Workers KV**.
 
 ### B2. Access as the identity provider for Claude logins
-1. Zero Trust → **Access → Applications → Add an application → SaaS** → choose **OIDC**.
+1. Zero Trust → **Access controls → Applications → Add an application → SaaS** → choose **OIDC**.
 2. **Redirect URLs:** `https://<app-host>/callback`. Under advanced settings, enable **Refresh tokens**.
 3. Use the same Allow policy (the invited emails).
 4. Save, then copy the client ID, client secret and the token / authorization / JWKS endpoints into

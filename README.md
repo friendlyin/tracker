@@ -61,8 +61,8 @@ You need:
    - Deploy command: `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote`
 
    The first deploy creates the database.
-3. **Turn on login.** Enable Cloudflare Access on the Worker and allow your email (plus anyone you
-   invite).
+3. **Turn on login.** In Zero Trust, add a self-hosted Access application for the Worker's address
+   with a policy that allows your exact email (plus anyone you invite).
 4. **Add secrets** with `pnpm wrangler secret put ...`. The Access team domain and audience tag.
 5. **Install on your phone.** iPhone: open the URL in Safari → Share → Add to Home Screen. Android:
    Chrome → menu → Install app.
