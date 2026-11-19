@@ -32,7 +32,7 @@ export interface WaterStateDto {
   creditMl: number;
   state: LevelState;
   /** Since when pending has been at the cap; null when below it. */
-  atCapSince: number | null;
+  cappedAt: number | null;
   /** When pending starts rising again (only while there is credit). */
   buildUpAt: number | null;
   totalMl: number;

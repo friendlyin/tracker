@@ -24,15 +24,21 @@ import type {
 import { localDate } from "../../shared/time";
 import type { Db } from "../db";
 import { dayType, type EntryRow, entry, metricDaily, workout } from "../db/schema";
-import { deleteEntry, getEntry, listEntries, logEntry, updateEntry } from "./entries";
-import { InvalidError, NotFoundError } from "./errors";
+import {
+  checkRange,
+  deleteEntry,
+  getEntry,
+  listEntries,
+  logEntry,
+  parseTime,
+  updateEntry,
+} from "./entries";
+import { NotFoundError } from "./errors";
 import { replaceMetrics } from "./metrics";
 import { getSetting, putSetting } from "./users";
 
 // Nutrition domain: meals are entries of the `meal` tracker. Targets depend on the day type, which
 // follows workouts unless overridden. API routes and MCP tools are thin wrappers over these functions.
-
-const MAX_RANGE_DAYS = 400;
 
 function toMealDto(r: EntryRow): MealDto {
   const d = r.data as MealData;
@@ -50,19 +56,6 @@ function toMealDto(r: EntryRow): MealDto {
     note: r.note,
     source: r.source,
   };
-}
-
-function parseTime(iso: string | undefined): number | undefined {
-  if (iso === undefined) return undefined;
-  const t = Date.parse(iso);
-  if (!Number.isFinite(t)) throw new InvalidError("invalid time");
-  return t;
-}
-
-function checkRange(from: string, to: string) {
-  if (from > to) throw new InvalidError("from is after to");
-  const days = (Date.parse(to) - Date.parse(from)) / 86_400_000;
-  if (days > MAX_RANGE_DAYS) throw new InvalidError(`at most ${MAX_RANGE_DAYS} days`);
 }
 
 // ---------- targets ----------

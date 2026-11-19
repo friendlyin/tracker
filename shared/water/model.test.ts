@@ -52,7 +52,7 @@ describe("water model", () => {
     const st = waterState(inputs(), at("2026-11-19T08:00:00Z"));
     expect(st.state).toBe("urgent");
     expect(st.pendingMl).toBe(500);
-    expect(st.atCapSince).toBe(at("2026-11-18T10:00:00Z"));
+    expect(st.cappedAt).toBe(at("2026-11-18T10:00:00Z"));
   });
 
   it("tracks pending and today's total after drinking", () => {
@@ -66,7 +66,7 @@ describe("water model", () => {
     expect(st.pendingMl).toBe(167);
     expect(st.state).toBe("ok");
     expect(st.totalMl).toBe(500);
-    expect(st.atCapSince).toBeNull();
+    expect(st.cappedAt).toBeNull();
     expect(st.points[0]?.t).toBe(at("2026-11-19T00:00:00Z"));
   });
 

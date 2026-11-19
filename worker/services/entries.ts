@@ -10,6 +10,23 @@ import { recomputeTrackerDay } from "./metrics";
 // Tracking engine service: generic entry CRUD for every tracker. Feature services (nutrition, later
 // water and focus) wrap these with domain-named functions; the rollups stay consistent here.
 
+const MAX_RANGE_DAYS = 400;
+
+/** ISO 8601 input time → Unix ms (undefined stays undefined: "now" is the caller's default). */
+export function parseTime(iso: string | undefined): number | undefined {
+  if (iso === undefined) return undefined;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) throw new InvalidError("invalid time");
+  return t;
+}
+
+/** Local date ranges for list queries: ordered and at most 400 days. */
+export function checkRange(from: string, to: string) {
+  if (from > to) throw new InvalidError("from is after to");
+  const days = (Date.parse(to) - Date.parse(from)) / 86_400_000;
+  if (days > MAX_RANGE_DAYS) throw new InvalidError(`at most ${MAX_RANGE_DAYS} days`);
+}
+
 export interface EntryInput<D> {
   id?: string;
   occurredAt: number;

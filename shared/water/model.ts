@@ -120,7 +120,7 @@ export function waterState(inputs: WaterInputsDto, now: number): WaterStateDto {
     pendingMl: Math.round(Math.max(sim.level, 0)),
     creditMl: Math.round(Math.max(-sim.level, 0)),
     state,
-    atCapSince: heldSince(sim.points, cap),
+    cappedAt: heldSince(sim.points, cap),
     buildUpAt,
     totalMl: inputs.entries.filter((e) => e.localDate === date).reduce((n, e) => n + e.ml, 0),
     targetMl: s.targetMl,

@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { z } from "zod";
+import type { DaySchedule } from "../../shared/schedule";
 import { isoInZone, localDate } from "../../shared/time";
 import type { Db } from "../db";
 import { InvalidError, NotFoundError } from "../services/errors";
@@ -11,6 +12,8 @@ export interface McpCtx {
   userId: string;
   /** The user's latest timezone (from the app). "Today" and default times follow it. */
   tz: string;
+  /** Wake and sleep time (profile). */
+  schedule: DaySchedule;
 }
 
 export const today = (ctx: McpCtx) => localDate(Date.now(), ctx.tz);

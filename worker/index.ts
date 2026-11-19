@@ -6,6 +6,7 @@ import { type AppEnv, requireUser } from "./auth";
 import type { User } from "./db/schema";
 import { handleMcp } from "./mcp";
 import { nutritionRoutes } from "./routes/nutrition";
+import { waterRoutes } from "./routes/water";
 import { workoutRoutes } from "./routes/workouts";
 import { InvalidError, NotFoundError } from "./services/errors";
 import { getDayStatus } from "./services/nutrition";
@@ -40,7 +41,8 @@ const api = new Hono<AppEnv>()
     return c.json(body);
   })
   .route("/", workoutRoutes)
-  .route("/", nutritionRoutes);
+  .route("/", nutritionRoutes)
+  .route("/", waterRoutes);
 
 api.onError((err, c) => {
   if (err instanceof NotFoundError) return c.json({ error: "not_found", what: err.message }, 404);
