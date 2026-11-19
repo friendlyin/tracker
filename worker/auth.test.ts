@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { identify } from "./auth";
+import { identify, isLocalHost } from "./auth";
 
 const env = (vars: Partial<Env>) => vars as Env;
 
@@ -33,5 +33,19 @@ describe("identify", () => {
     });
     const e = env({ ACCESS_AUD: "aud", ACCESS_TEAM_DOMAIN: "https://team.example.com" });
     expect(await identify(req, e)).toBeNull();
+  });
+
+  it("treats only localhost and private addresses as local", () => {
+    for (const h of ["localhost", "127.0.0.1", "192.168.1.20", "10.0.0.5", "172.20.1.1"]) {
+      expect(isLocalHost(h)).toBe(true);
+    }
+    for (const h of [
+      "tracker.example.workers.dev",
+      "172.32.0.1",
+      "8.8.8.8",
+      "192.168.example.com",
+    ]) {
+      expect(isLocalHost(h)).toBe(false);
+    }
   });
 });

@@ -1,5 +1,6 @@
 # Copy to .dev.vars (git-ignored) for local development.
-# On localhost the API acts as this user. Ignored on any other host.
+# On localhost (and private network addresses, for phone testing) the API acts as this user.
+# Ignored on any other host.
 DEV_USER_EMAIL=you@example.com
 
 # Production values are Cloudflare secrets (see docs/cloudflare-setup.md A7), not set here:

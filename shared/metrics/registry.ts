@@ -1,5 +1,5 @@
 // Metrics engine registry. Each feature registers the metrics it writes to `metric_daily`. The stats
-// UI (iteration 6) and the MCP `get_metrics` tool read these definitions.
+// UI (iteration 7) and the MCP `get_metrics` tool read these definitions.
 
 export type Aggregation = "sum" | "avg" | "min" | "max" | "last" | "count";
 

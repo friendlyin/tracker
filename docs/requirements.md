@@ -5,8 +5,29 @@ private account.
 Mobile-first, minimal, data-first UI (see principles in [CLAUDE.md](../CLAUDE.md)). The app has no AI;
 Claude reads and writes data through the app's MCP server.
 
-**Priority:** workouts → nutrition (kcal/protein) → water → focus energy. Then stats, offline, WHOOP,
-habits, mood.
+**Priority:** workouts → nutrition (kcal/protein) → water → focus energy, all built and used locally
+first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP, habits, mood.
+
+**Order of work**
+
+| # | Iteration | Status |
+|---|---|---|
+| 0 | Foundation | ✅ |
+| 1 | Platform base (local) | ✅ |
+| 2 | Workouts | ✅ |
+| 3 | Nutrition + tracking engine + local MCP server | next |
+| 4 | Water + level engine | |
+| 5 | Focus energy | |
+| 6 | Deploy to Cloudflare, login, connect Claude | |
+| 7 | Stats engine and Overview | |
+| 8 | Offline-proof logging | |
+| 9 | WHOOP | |
+| 10 | Habits | |
+| 11 | Mood and emotions | |
+
+Until iteration 6 everything runs locally (`pnpm dev`, local D1, dev user). The phone can open the dev
+server over the home network for testing (`pnpm dev --host`), but the PWA is installed for real only
+after the deploy.
 
 ## Global requirements
 
@@ -16,7 +37,7 @@ habits, mood.
 - **Timezones:** the user's day follows the device's current timezone, so travel works.
 - **Units:** kg, ml, kcal, grams. The week starts on Monday.
 - **Day schedule:** one user setting, wake time and sleep time (default 07:00–23:00). Water and focus
-  both use it for their day/night behaviour. Once WHOOP is connected (iteration 8), actual sleep and
+  both use it for their day/night behaviour. Once WHOOP is connected (iteration 9), actual sleep and
   wake times replace these defaults day by day.
 - **MCP:** the app exposes an authenticated MCP server so Claude can read data (for insights) and
   write data (meals, exercises, targets, etc.).
@@ -72,7 +93,7 @@ A level that changes over time on its own and is moved by entries. It is a pure 
 Water is a debt that rises over time and drinking lowers it. Focus energy falls over time and unfocus
 and sleep raise it. Both are configurations of this one engine.
 
-### Metrics and stats engine (rollups from iteration 2; full UI in iteration 6)
+### Metrics and stats engine (rollups from iteration 2; full UI in iteration 7)
 
 - **Metric registry:** each feature registers metrics with an id, unit, daily aggregation (sum / avg /
   min / max / last / count), an optional target (can depend on the day, e.g. workout vs rest day),
@@ -97,18 +118,12 @@ and sleep raise it. Both are configurations of this one engine.
 Project scaffold (React + Vite + Cloudflare Worker + D1), dependencies, git repository, project
 principles (`CLAUDE.md`), infrastructure analysis and these docs.
 
-## Iteration 1: Platform base
+## Iteration 1: Platform base (local) ✅
 
-Deployed, installable, logged-in empty app.
+The app shell and everything a deploy needs, running locally. The deploy itself moved to iteration 6.
 
-**Status:** code done (2026-11-19). Waiting for the first deploy and the 30-minute Access test on the
-iPhone (setup steps A1–A8). If the test passes, remove the `better-auth` dependency.
-
-- GitHub repository + automatic deploys on push to `main` (Workers Builds), with migrations run on
-  deploy. Free `*.workers.dev` address (no custom domain for now).
-- Auth: **Cloudflare Access** with email one-time-code login and an email allowlist (see
-  [architecture.md §3](architecture.md#3-authentication)). Start with the 30-minute test on the iPhone;
-  fall back to Better Auth (email + password) only if it fails.
+- Auth code: Cloudflare Access JWT verification (fails closed) and a dev user on localhost. Testing it
+  for real happens in iteration 6.
 - Open-source basics: public README with self-hosting instructions, LICENSE, private-data guard
   (pre-commit check against a local, git-ignored list of private terms).
 - App user record: id, email, name, timezone, day schedule.
@@ -118,7 +133,7 @@ iPhone (setup steps A1–A8). If the test passes, remove the `better-auth` depen
 - PWA: manifest, proper icons (incl. Apple touch icon), app-shell caching, install on iPhone.
 - Query cache persistence (offline read).
 
-## Iteration 2: Workouts
+## Iteration 2: Workouts ✅
 
 Weekly-volume-driven gym logging where exercises are chosen in the gym.
 
@@ -171,7 +186,8 @@ Weekly-volume-driven gym logging where exercises are chosen in the gym.
     contributions), `archive_exercise`
 
 **Status:** done (2026-11-19). The MCP tools above are
-implemented as service functions in `worker/services/workouts.ts` and become MCP tools in iteration 3:
+implemented as service functions in `worker/services/workouts.ts` and become MCP tools with the MCP
+server in iteration 3:
 
 | MCP tool | Service function |
 |---|---|
@@ -204,7 +220,7 @@ implemented as service functions in `worker/services/workouts.ts` and become MCP
   **grid** (2-column cells per muscle group), set entry **steppers** (− / + around kg and reps).
   Rejected: home rows / lead, budget bars / big numbers, on-screen keypad.
 
-## Iteration 3: Nutrition + MCP server (+ tracking engine)
+## Iteration 3: Nutrition + tracking engine + local MCP server
 
 Meals are logged mostly by Claude from meal photos; the app shows the daily budget.
 
@@ -215,7 +231,9 @@ Meals are logged mostly by Claude from meal photos; the app shows the daily budg
 - **Today view:** consumed vs target and remaining for kcal and protein; fat and carbs consumed; list of
   meals (edit/delete, quick manual add).
 - **Home widget:** remaining kcal and protein for today.
-- **MCP server:** OAuth-protected `/mcp` endpoint; connection guide for claude.ai and Claude Code.
+- **MCP server (local):** `/mcp` endpoint with all tools so far (workouts + nutrition). Locally it uses
+  the dev user without OAuth, so Claude Code on this computer can connect to `http://localhost:5173/mcp`
+  and the photo → meal flow can be tried before the deploy. OAuth and claude.ai come in iteration 6.
 - **MCP tools:**
   - meals: `log_meal` (name, time, kcal, protein, fat, carbs, optional item breakdown), `update_meal`,
     `delete_meal`, `list_meals(date)`
@@ -301,7 +319,23 @@ out. It is a second configuration of the level engine.
 
 Web Push reminders (for focus and water) are in the backlog.
 
-## Iteration 6: Stats engine and Overview
+## Iteration 6: Deploy to Cloudflare, login, connect Claude
+
+Everything from iterations 1–5 goes live on your own Cloudflare account.
+
+- Cloudflare setup steps A1–A8 ([cloudflare-setup.md](cloudflare-setup.md)): account, GitHub repository
+  connected to Workers Builds (deploy on every push to `main`, migrations run on deploy), free
+  `*.workers.dev` address.
+- **Cloudflare Access** with email one-time-code login and an email allowlist. Run the 30-minute test
+  on the iPhone: log in, Add to Home Screen, reopen the next day, check the bypass for the MCP paths.
+  Fall back to Better Auth (email + password) only if it fails; otherwise remove `better-auth`.
+- **MCP OAuth:** `@cloudflare/workers-oauth-provider` with Access for SaaS as the identity provider
+  (steps B1–B3), so claude.ai (web, desktop, mobile) and Claude Code connect with each person's own
+  login.
+- Install the PWA on the phone. Optional: move local test data over (`wrangler d1 export` locally,
+  import remotely), or start fresh.
+
+## Iteration 7: Stats engine and Overview
 
 The full metrics UI on top of the rollups that features have been writing since iteration 2:
 - one period selector
@@ -320,12 +354,12 @@ Overview: all features in one screen for the selected period, plus a day detail 
 
 MCP: `list_metrics`, `get_metrics` for cross-feature insights.
 
-## Iteration 7: Offline-proof logging
+## Iteration 8: Offline-proof logging
 
 Logging works with no signal (gym): mutations queue in IndexedDB and sync on reconnect, without
 conflicts thanks to client-generated IDs. Includes a sync-state indicator.
 
-## Iteration 8: WHOOP integration
+## Iteration 9: WHOOP integration
 
 Each user connects their own WHOOP via OAuth. Sync recovery, sleep, strain/cycles and workouts via cron
 plus webhooks. Uses:
@@ -336,13 +370,13 @@ plus webhooks. Uses:
 
 WHOOP data is exposed through our MCP for cross-feature insights.
 
-## Iteration 9: Habits
+## Iteration 10: Habits
 
 Built on the tracking engine as check-type trackers: morning sun exposure, going to sleep early, etc.
 One-tap check-off, streaks and weekly completion in the stats engine. Sleep timing can be checked against
 WHOOP sleep. MCP via the generic entry tools.
 
-## Iteration 10: Mood and emotions
+## Iteration 11: Mood and emotions
 
 Quick check-ins built on the tracking engine:
 - how the user feels (UI to explore with variants, e.g. a valence/energy grid)
@@ -386,3 +420,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Muscle groups are fixed keys; categories and targets are user settings. The seed exercise library is copied per user, so every exercise is editable. |
 | 2026-11-19 | A new user row is created on first login with a valid Access token; the Access allowlist is the only gate. |
 | 2026-11-19 | Design: home tiles, two-column budget grid, stepper set entry. |
+| 2026-11-19 | Build nutrition, water and focus locally first; deploy, Access login and Claude OAuth move to iteration 6. The MCP server is built in iteration 3 and used locally until then. |

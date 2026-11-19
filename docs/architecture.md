@@ -72,7 +72,7 @@ limit (most likely from password hashing or heavy statistics) or want 30-day bac
 | API | Hono on Workers | Small and fast. The PWA calls it with a thin fetch wrapper; request/response types live in `shared/` (`hono/client` would pull Worker types into the browser build). |
 | Validation | zod | One schema for API input, MCP tool input and forms. |
 | DB | D1 + Drizzle ORM + drizzle-kit | Typed queries; SQL migrations applied by wrangler. |
-| Auth | Cloudflare Access (chosen); Better Auth as fallback | See §3. Confirmed by a test on the iPhone at the start of iteration 1. |
+| Auth | Cloudflare Access (chosen); Better Auth as fallback | See §3. Confirmed by a test on the iPhone in iteration 6 (deploy). |
 | MCP | Agents SDK (`agents`) + `@modelcontextprotocol/sdk` + `@cloudflare/workers-oauth-provider` | Streamable-HTTP MCP endpoint at `/mcp` with OAuth 2.1, so it works as a claude.ai custom connector and in Claude Code. |
 | PWA | vite-plugin-pwa (Workbox) | Manifest, service worker, app-shell caching. |
 | Charts | Decided in the Stats iteration, using design variants | Candidates: hand-written SVG (most control over a flat look), visx, Recharts. |
@@ -152,7 +152,7 @@ external identity provider.
 
 ### Plan
 
-Start iteration 1 with a **30-minute test**:
+Start iteration 6 (deploy) with a **30-minute test**:
 1. Deploy the blank app.
 2. Enable Access with the email allowlist.
 3. Install the PWA on the iPhone and check login, re-opening after a day, and that the bypass for
@@ -179,7 +179,7 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
 |---|---|---|---|
 | 1 | Precache the app shell (HTML/JS/CSS/icons) with the service worker | Instant launch, the app opens without signal. Already configured. | Iteration 1 |
 | 2 | Persist the TanStack Query cache to IndexedDB | Last-known data shows instantly and offline (read-only). | Iteration 1–2 |
-| 3 | Offline write queue for logging (sets, water) | Gyms often have poor signal. Logging a set must never fail. Mutations queue locally and sync later. | Iteration 6 (cheap because IDs are client-generated from day 1) |
+| 3 | Offline write queue for logging (sets, water) | Gyms often have poor signal. Logging a set must never fail. Mutations queue locally and sync later. | Iteration 8 (cheap because IDs are client-generated from day 1) |
 | 4 | Web Push notifications | Water urgency reminders. iOS supports push for home-screen PWAs. | Backlog |
 
 API responses are never served from the service-worker cache: `/api`, `/mcp` and the auth paths are

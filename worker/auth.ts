@@ -17,15 +17,20 @@ function normalizeTeamDomain(raw: string): string {
   return withScheme.replace(/\/+$/, "");
 }
 
+/** localhost or a private network address (phone testing against `pnpm dev --host`). */
+export function isLocalHost(host: string): boolean {
+  if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") return true;
+  if (/^10\.\d+\.\d+\.\d+$/.test(host) || /^192\.168\.\d+\.\d+$/.test(host)) return true;
+  const m = /^172\.(\d+)\.\d+\.\d+$/.exec(host);
+  return m !== null && Number(m[1]) >= 16 && Number(m[1]) <= 31;
+}
+
 /**
  * Who is calling. Production: the Cloudflare Access JWT, verified against the team's public keys and
- * the application's AUD tag. Local dev: DEV_USER_EMAIL, honoured only on localhost. Fails closed.
+ * the application's AUD tag. Local dev: DEV_USER_EMAIL, honoured only on localhost and private network addresses. Fails closed.
  */
 export async function identify(req: Request, env: Env): Promise<string | null> {
-  const host = new URL(req.url).hostname;
-  if (env.DEV_USER_EMAIL && (host === "localhost" || host === "127.0.0.1")) {
-    return env.DEV_USER_EMAIL;
-  }
+  if (env.DEV_USER_EMAIL && isLocalHost(new URL(req.url).hostname)) return env.DEV_USER_EMAIL;
 
   const token = req.headers.get("cf-access-jwt-assertion");
   if (!token || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return null;

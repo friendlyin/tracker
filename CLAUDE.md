@@ -45,7 +45,7 @@ it requires the Cloudflare Access JWT (`worker/auth.ts`) and fails closed.
 
 Code map:
 - `worker/services/*`: domain logic as `(db, userId, input)` functions. API routes (`worker/routes/`) and
-  MCP tools (iteration 3) are thin wrappers over them.
+  MCP tools (`/mcp`, from iteration 3) are thin wrappers over them.
 - `shared/<feature>/`: zod schemas, DTO types (`types.ts`) and pure logic shared by PWA and Worker.
 - `src/routes/`: screens; `src/features/<feature>/`: query hooks and feature components; `src/ui/`: base
   components; `src/dev/variants.tsx`: `useVariant`.

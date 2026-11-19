@@ -15,13 +15,13 @@ Built for one person or a household: each person has their own account and sees 
 |---|---|---|
 | Workouts ✅ | Weekly sets per muscle group (major/minor targets, fractional credit for secondary muscles). You choose exercises in the gym, see your previous result instantly, and log warm-up and working sets. | 2 |
 | Nutrition | Daily kcal / protein budget with workout-day and rest-day targets. Meals logged by Claude from a photo, or by hand. | 3 |
-| Claude (MCP) | Claude reads and writes your data: log meals, adjust targets, analyse trends. | 3 |
+| Claude (MCP) | Claude reads and writes your data: log meals, adjust targets, analyse trends. | 3 (local), 6 (claude.ai) |
 | Water | Water "debt" builds up through the day (slower at night) and is paid off by drinking. The app warns when you've been behind for too long. | 4 |
 | Focus energy | Focus energy drains with work and information intake, refills with deliberate unfocus and sleep. The app prompts you to unfocus before you run out. | 5 |
-| Stats | One engine for all charts: any period, per feature or everything on one screen. | 6 |
-| Offline logging | Log sets in a gym with no signal; the app syncs later. | 7 |
-| WHOOP | Sleep, recovery and workouts from your WHOOP. | 8 |
-| Habits, mood | Habits such as morning sunlight, plus mood check-ins. | 9–10 |
+| Stats | One engine for all charts: any period, per feature or everything on one screen. | 7 |
+| Offline logging | Log sets in a gym with no signal; the app syncs later. | 8 |
+| WHOOP | Sleep, recovery and workouts from your WHOOP. | 9 |
+| Habits, mood | Habits such as morning sunlight, plus mood check-ins. | 10–11 |
 
 ## How it works
 
@@ -65,7 +65,7 @@ You need:
 4. **Add secrets** with `pnpm wrangler secret put ...`. The Access team domain and audience tag.
 5. **Install on your phone.** iPhone: open the URL in Safari → Share → Add to Home Screen. Android:
    Chrome → menu → Install app.
-6. **Connect Claude** (from iteration 3). In claude.ai, go to Settings → Connectors → Add custom
+6. **Connect Claude** (from iteration 6). In claude.ai, go to Settings → Connectors → Add custom
    connector and enter `https://<your-app>/mcp`.
 
 Every push to your fork's `main` branch redeploys automatically.
@@ -81,6 +81,10 @@ pnpm dev                         # http://localhost:5173: app + API + local data
 
 There is no Cloudflare Access locally: on `localhost` the API acts as `DEV_USER_EMAIL` from `.dev.vars`.
 On any other host that variable is ignored and requests without a valid Access token get 401.
+
+To try it on your phone before deploying: run `pnpm dev --host`, then open the printed network address
+(`http://192.168.x.x:5173`) on the phone, on the same Wi-Fi. The dev user is also accepted on private
+network addresses. Installing as a home-screen app needs HTTPS, so that waits for the deploy.
 
 | Command | |
 |---|---|

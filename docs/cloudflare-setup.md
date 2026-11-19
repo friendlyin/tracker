@@ -16,7 +16,7 @@ Steps are grouped by the iteration that needs them.
 
 ---
 
-## Part A: Iteration 1 (first deploy)
+## Part A: Iteration 6 (first deploy)
 
 ### A1. Account and security
 1. Sign up or log in at dash.cloudflare.com and verify your email.
@@ -55,7 +55,7 @@ pnpm wrangler whoami    # shows your account
    - **Deploy command:** `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote`
 3. Click **Deploy**. On the first deploy wrangler creates the D1 database because the binding has no id.
    Then the migrations create the tables.
-   - To verify in iteration 1: if the migration step can't find the auto-created database, copy its id
+   - To verify on the first deploy: if the migration step can't find the auto-created database, copy its id
      from the dashboard into `wrangler.jsonc` (`database_id`). It is not personal data or a secret; forks
      only have to change that one line.
 4. Every push to `main` now deploys. Build logs are under **Deployments**.
@@ -88,7 +88,7 @@ See [architecture.md §3](architecture.md#3-authentication) for why.
    tag**, and store it and the team domain as secrets (A7).
 6. **Test on the iPhone:** open the URL in Safari, log in with the email code, Add to Home Screen, open
    it from the home screen, close it, and open it again the next day.
-7. **Bypass for Claude** (needed in iteration 3, but test it now): add a second Access application for
+7. **Bypass for Claude** (needed for Part B; test it now): add a second Access application for
    the same host with the paths `/mcp`, `/authorize`, `/token`, `/register`, `/callback` and
    `/.well-known/`. Give it one policy with Action **Bypass**, Include **Everyone**. The Worker protects
    these paths with its own OAuth. Check that `https://<app-host>/mcp` is reachable without the Access
@@ -140,7 +140,7 @@ re-install the PWA. Access path rules are simplest on a custom domain.
 
 ---
 
-## Part B: Iteration 3 (MCP server for Claude)
+## Part B: Iteration 6 (connect Claude)
 
 ### B1. Storage for OAuth tokens (KV)
 The code adds an `OAUTH_KV` binding without an id to `wrangler.jsonc`. The next deploy from GitHub
@@ -172,7 +172,7 @@ Each invited person connects their own Claude with their own account and sees on
 
 ---
 
-## Part C: Iteration 8 (WHOOP)
+## Part C: Iteration 9 (WHOOP)
 
 1. At https://developer.whoop.com (WHOOP's site, not Cloudflare), create an app. Use redirect URL
    `https://<app-host>/api/whoop/callback` and scopes `read:recovery read:sleep read:workout
