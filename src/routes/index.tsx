@@ -11,6 +11,7 @@ import { cx } from "../ui/cx";
 import { CheckIcon, PersonIcon } from "../ui/icons";
 import { ProgressBar } from "../ui/ProgressBar";
 import { IconLink } from "../ui/Screen";
+import { SyncState } from "../ui/SyncState";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -150,11 +151,14 @@ function Home() {
   const home = useHome();
   return (
     <div className="min-h-dvh px-4">
-      <header className="pt-safe flex h-[calc(56px+max(env(safe-area-inset-top),12px))] items-center justify-between">
+      <header className="pt-safe relative flex h-[calc(56px+max(env(safe-area-inset-top),12px))] items-center justify-between">
         <span className="text-[15px] text-ink-2">{todayFmt.format(new Date())}</span>
-        <IconLink to="/settings" label="Profile and settings" className="-mr-2">
-          <PersonIcon />
-        </IconLink>
+        <div className="-mr-2 flex items-center">
+          <SyncState />
+          <IconLink to="/settings" label="Profile and settings">
+            <PersonIcon />
+          </IconLink>
+        </div>
       </header>
       <Tiles items={widgets(home.data)} />
     </div>

@@ -6,7 +6,8 @@ import { waterSettingsPatchSchema } from "../../shared/water/settings";
 import type { AppEnv } from "../auth";
 import * as svc from "../services/water";
 
-// Writes answer with fresh inputs, so the client replaces its cache and simulates from there.
+// Writes answer with fresh inputs. The app sends writes through its offline outbox and refetches
+// instead; the answer is for other clients.
 
 const who = (c: Context<AppEnv>) => svc.waterUser(c.var.user, c.var.tz);
 

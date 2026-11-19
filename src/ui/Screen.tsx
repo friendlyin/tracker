@@ -2,6 +2,7 @@ import { Link, type LinkProps } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cx } from "./cx";
 import { BackIcon } from "./icons";
+import { SyncState } from "./SyncState";
 
 interface ScreenProps {
   title?: ReactNode;
@@ -30,7 +31,10 @@ export function Screen({ title, back, backParams, right, children, footer }: Scr
           <span className="w-2" />
         )}
         <h1 className="min-w-0 flex-1 truncate text-[17px] font-semibold">{title}</h1>
-        <div className="flex items-center">{right}</div>
+        <div className="flex items-center">
+          <SyncState />
+          {right}
+        </div>
       </header>
       <main className="flex-1 px-4 pb-6">{children}</main>
       {footer && (

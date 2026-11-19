@@ -193,9 +193,41 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
 | Level | What | Value | When |
 |---|---|---|---|
 | 1 | Precache the app shell (HTML/JS/CSS/icons) with the service worker | Instant launch, the app opens without signal. Already configured. | Iteration 1 |
-| 2 | Persist the TanStack Query cache to IndexedDB | Last-known data shows instantly and offline (read-only). | Iteration 1–2 |
-| 3 | Offline write queue for logging (sets, water) | Gyms often have poor signal. Logging a set must never fail. Mutations queue locally and sync later. | Iteration 8 (cheap because IDs are client-generated from day 1) |
+| 2 | Persist the TanStack Query cache to IndexedDB | Last-known data shows instantly and offline. | Iteration 1–2 ✅ |
+| 3 | Offline write queue (outbox) for every write | Gyms often have poor signal. Logging a set must never fail. Writes queue locally and sync later. | Iteration 8 ✅ |
 | 4 | Web Push notifications | Water urgency reminders. iOS supports push for home-screen PWAs. | Backlog |
+
+**Writes (level 3).**
+- `queueWrite` (`src/lib/api.ts`) puts every write in the outbox (`src/lib/outbox.ts`), an ordered
+  list in IndexedDB under its own key, and the hooks update the query cache optimistically. TanStack
+  mutations use `networkMode: "always"`, because they only enqueue.
+- The outbox sends one write at a time, oldest first, with the timezone from when it was made
+  (`x-timezone`).
+  - 2xx or 404: the write is removed.
+  - Other 4xx: removed and counted as refused (the header indicator shows it).
+  - 401, or a redirect to the Access login: the write is kept, and the app reloads into the login.
+  - 5xx or network failure: the write is kept and retried after 2 s, 5 s, 15 s, then every 60 s.
+- It also flushes when the network comes back, the app comes to the front, a write is queued or a
+  read runs: `api()` sends the queue first, so a refetch includes every write made so far. Once the
+  queue empties, all queries refetch.
+- Replays must be safe whenever they happen. The client sets ids (UUIDv7) and times, and the server
+  treats a repeated create as a no-op and a delete of something missing as success.
+- Why not TanStack's paused mutations: they pause only when the browser reports offline (iOS often
+  reports online with no usable signal), they are lost when a deploy clears the persisted cache, and
+  they need every mutation function registered globally.
+- A new build starts with an empty query cache (the persister's `buster` is the build id). After the
+  restore, `warmCache` (`src/features/warm.ts`) loads the main screens' data, so they work offline
+  later.
+
+**Updates.**
+- Every deploy builds new hashed chunks, and the new service worker deletes the old ones. A page
+  still running the old build would then fail to load a screen it hasn't opened yet: the server
+  answers the missing chunk with `index.html`.
+- `src/lib/pwa.ts` registers the service worker with `skipWaiting` and `clientsClaim`, reloads the
+  page as soon as a new one takes over, and checks for an update whenever the app comes to the front,
+  so updates land on open.
+- A chunk that still fails to load (`vite:preloadError`) triggers one reload.
+- Queued writes survive these reloads.
 
 API responses are never served from the service-worker cache: `/api`, `/mcp` and the auth paths are
 excluded. Freshness is handled by TanStack Query.

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { focusState, isRunning } from "../../../shared/focus/model";
 import type { FocusKind } from "../../../shared/focus/schemas";
@@ -11,27 +11,27 @@ import {
 import type { FocusEntryDto, FocusInputsDto } from "../../../shared/focus/types";
 import { uuidv7 } from "../../../shared/id";
 import { isoInZone, localDate } from "../../../shared/time";
-import { api, deviceTimeZone } from "../../lib/api";
+import { api, deviceTimeZone, queueWrite } from "../../lib/api";
 import { useNow } from "../../lib/useNow";
 
 // The app logs focus sessions and runs their timers. Writes are optimistic: the cached inputs change
-// and the shared simulation runs again. Claude can log too, so the day refetches on open and focus.
+// and the shared simulation runs again. The write waits in the outbox until it is sent; the day
+// refetches once the outbox is empty. Claude can log too, so the day also refetches on open and focus.
 
 export const fkeys = {
   all: ["focus"] as const,
   day: ["focus", "day"] as const,
   settings: ["focus", "settings"] as const,
 };
-const mutationKey = ["focus", "write"];
 const MIN = 60_000;
 const iso = (t: number) => isoInZone(t, deviceTimeZone());
 
-export const useFocusDay = () =>
-  useQuery({
-    queryKey: fkeys.day,
-    queryFn: () => api<FocusInputsDto>("/focus/day"),
-    staleTime: 0,
-  });
+export const focusDayQuery = queryOptions({
+  queryKey: fkeys.day,
+  queryFn: () => api<FocusInputsDto>("/focus/day"),
+  staleTime: 0,
+});
+export const useFocusDay = () => useQuery(focusDayQuery);
 
 export const useFocusSettings = () =>
   useQuery({ queryKey: fkeys.settings, queryFn: () => api<FocusSettings>("/focus/settings") });
@@ -46,14 +46,13 @@ export function useFocusState() {
   return useMemo(() => (data ? focusState(data, Date.now()) : undefined), [data, tick]);
 }
 
-/** Optimistic write on the cached day; the server's answer replaces it once no other write is pending. */
+/** Optimistic write on the cached day, queued in the outbox. */
 function useFocusWrite<V>(
-  request: (v: V) => Promise<FocusInputsDto>,
+  request: (v: V) => Promise<void>,
   optimistic: (d: FocusInputsDto, v: V) => FocusInputsDto,
 ) {
   const qc = useQueryClient();
   return useMutation({
-    mutationKey,
     mutationFn: request,
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: fkeys.day });
@@ -63,9 +62,6 @@ function useFocusWrite<V>(
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(fkeys.day, ctx.prev);
-    },
-    onSuccess: (d) => {
-      if (qc.isMutating({ mutationKey }) <= 1) qc.setQueryData(fkeys.day, d);
     },
   });
 }
@@ -97,14 +93,14 @@ type Started = { id: string; kind: FocusKind; tag?: string; at: number };
 export function useFocusLog() {
   const add = useFocusWrite(
     (v: Added) =>
-      api<FocusInputsDto>("/focus/entries", {
-        body: { id: v.id, kind: v.kind, tag: v.tag, minutes: v.minutes },
+      queueWrite("/focus/entries", {
+        body: { id: v.id, kind: v.kind, tag: v.tag, minutes: v.minutes, time: iso(v.at) },
       }),
     (d, v) => ({ ...d, entries: [...d.entries, newEntry(d, v)] }),
   );
   const start = useFocusWrite(
     (v: Started) =>
-      api<FocusInputsDto>("/focus/start", {
+      queueWrite("/focus/start", {
         body: { id: v.id, kind: v.kind, tag: v.tag, time: iso(v.at) },
       }),
     (d, v) => ({
@@ -127,11 +123,19 @@ export function useFocusLog() {
 }
 
 export function useStopFocus() {
+  const qc = useQueryClient();
   const m = useFocusWrite(
-    (at: number) => api<FocusInputsDto>("/focus/stop", { body: { time: iso(at) } }),
-    (d, at) => ({ ...d, entries: stopAll(d.entries, at) }),
+    (v: { at: number; id?: string }) =>
+      queueWrite("/focus/stop", { body: { time: iso(v.at), id: v.id } }),
+    (d, v) => ({ ...d, entries: stopAll(d.entries, v.at) }),
   );
-  return { stop: () => m.mutate(Date.now()) };
+  return {
+    // Names the running timer, so a late or repeated stop never stops a newer one.
+    stop: () => {
+      const id = qc.getQueryData<FocusInputsDto>(fkeys.day)?.entries.find(isRunning)?.id;
+      m.mutate({ at: Date.now(), id });
+    },
+  };
 }
 
 export interface FocusPatch {
@@ -143,7 +147,7 @@ export interface FocusPatch {
 export function useUpdateFocus() {
   return useFocusWrite(
     (v: FocusPatch) =>
-      api<FocusInputsDto>(`/focus/entries/${v.id}`, {
+      queueWrite(`/focus/entries/${v.id}`, {
         method: "PATCH",
         body: { minutes: v.minutes, tag: v.tag },
       }),
@@ -163,7 +167,7 @@ export function useUpdateFocus() {
 
 export function useDeleteFocus() {
   return useFocusWrite(
-    (id: string) => api<FocusInputsDto>(`/focus/entries/${id}`, { method: "DELETE" }),
+    (id: string) => queueWrite(`/focus/entries/${id}`, { method: "DELETE" }),
     (d, id) => ({ ...d, entries: d.entries.filter((e) => e.id !== id) }),
   );
 }
@@ -172,7 +176,7 @@ export function useDeleteFocus() {
 export function useSetSleep() {
   return useFocusWrite(
     (v: { quality: SleepQuality; date: string }) =>
-      api<FocusInputsDto>("/focus/sleep", { method: "PUT", body: v }),
+      queueWrite("/focus/sleep", { method: "PUT", body: v }),
     (d, v) => {
       const existing = d.sleep.find((s) => s.date === v.date);
       const now = Date.now();
@@ -188,7 +192,7 @@ export function useUpdateFocusSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (patch: FocusSettingsPatch) =>
-      api<FocusSettings>("/focus/settings", { method: "PATCH", body: patch }),
+      queueWrite("/focus/settings", { method: "PATCH", body: patch }),
     onMutate: (patch) => {
       qc.setQueryData<FocusSettings>(fkeys.settings, (s) =>
         s ? applyFocusSettingsPatch(s, patch) : s,
@@ -198,9 +202,5 @@ export function useUpdateFocusSettings() {
       );
     },
     onError: () => qc.invalidateQueries({ queryKey: fkeys.all }),
-    onSuccess: (s) => {
-      qc.setQueryData(fkeys.settings, s);
-      qc.invalidateQueries({ queryKey: fkeys.day });
-    },
   });
 }

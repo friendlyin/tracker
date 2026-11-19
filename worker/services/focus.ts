@@ -207,11 +207,16 @@ export async function listFocus(
 // ---------- writes ----------
 
 /**
- * Stops every running timer at `at` (never before its start). A timer stopped within a minute was a
- * mis-tap and is removed. Returns what was stopped.
+ * Stops every running timer (or only timer `id`) at `at` (never before its start). A timer stopped
+ * within a minute was a mis-tap and is removed. Returns what was stopped.
  */
-export async function stopFocus(db: Db, u: DayUser, at = Date.now()): Promise<FocusEntryDto[]> {
-  const running = await runningRows(db, u.id);
+export async function stopFocus(
+  db: Db,
+  u: DayUser,
+  at = Date.now(),
+  id?: string,
+): Promise<FocusEntryDto[]> {
+  const running = (await runningRows(db, u.id)).filter((r) => !id || r.id === id);
   const out: FocusEntryDto[] = [];
   for (const r of running) {
     if (at - r.occurredAt < MIN) {
@@ -235,7 +240,7 @@ async function existing(db: Db, userId: string, id: string | undefined) {
   return row ? toDto(row) : null;
 }
 
-/** Minutes added afterwards: no time of day, they apply now. Idempotent by id. */
+/** Minutes added afterwards: no time of day, they apply when added (default now). Idempotent by id. */
 export async function logFocus(
   db: Db,
   u: DayUser,
@@ -244,9 +249,12 @@ export async function logFocus(
 ): Promise<FocusEntryDto> {
   const done = await existing(db, u.id, input.id);
   if (done) return done;
+  const now = Date.now();
+  const at = parseTime(input.time) ?? now;
+  if (at > now + FUTURE_MS) throw new InvalidError("time is in the future");
   const row = await logEntry(db, u.id, u.tz, "focus", {
     id: input.id,
-    occurredAt: Date.now(),
+    occurredAt: at,
     value: input.minutes,
     data: focusData(input.kind, input.tag),
     source,

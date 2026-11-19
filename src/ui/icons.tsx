@@ -77,3 +77,14 @@ export const StopIcon = (p: P) => (
     <path d="M6 6h12v12H6z" />
   </Svg>
 );
+export const CloudUpIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M8 18.5H6.5a4 4 0 0 1-.4-7.98A6 6 0 0 1 17.7 9a4.75 4.75 0 0 1-.2 9.5H16" />
+    <path d="M12 20v-7M9 15.5l3-3 3 3" />
+  </Svg>
+);
+export const ArrowUpIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 19V6M6.5 11.5 12 6l5.5 5.5" />
+  </Svg>
+);

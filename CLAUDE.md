@@ -46,6 +46,9 @@ it requires the Cloudflare Access JWT (`worker/auth.ts`) and fails closed.
 Code map:
 - `worker/services/*`: domain logic as `(db, userId, input)` functions. API routes (`worker/routes/`) and
   MCP tools (`worker/mcp/tools/`, served at `/mcp`) are thin wrappers over them.
+- `src/lib/api.ts` + `src/lib/outbox.ts`: reads (`api`) and writes (`queueWrite`, through the offline
+  outbox); `src/ui/SyncState.tsx` shows unsynced writes. `src/lib/pwa.ts`: service worker and app
+  updates.
 - `worker/oauth.ts` + `worker/consent.ts`: OAuth for MCP clients. `/mcp` needs a token whose grant
   names the user; `/authorize` (behind Access) is the consent page.
 - `worker/services/entries.ts` + `shared/tracking/trackers.ts`: the tracking engine (entries of
@@ -126,6 +129,13 @@ nothing that identifies a real user, including the maintainer and their family.
   the user record.
 - **Units.** Metric: kg, ml, kcal, grams.
 - **IDs.** Generate entity IDs on the client (UUIDv7), so offline writes and retries are idempotent.
+- **Offline writes.** The app writes only through `queueWrite` (the outbox), never with `api()`, and
+  updates the query cache optimistically, because the server answers later. Every write must be safe
+  to replay late and twice:
+  - the client sets ids and times (`performedAt`, `time`, `endedAt`), never "now" on the server;
+  - creates are idempotent by id;
+  - a delete of something missing succeeds;
+  - an action on "whatever is running" names its target.
 - **Reuse the shared engines.** Things the user logs go through the tracking engine (tracker + entry).
   Levels that change over time (water debt, focus energy) are configurations of the level engine.
   Every chart, period selector and aggregate goes through the metrics engine (`metric_daily` + metric

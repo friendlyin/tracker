@@ -137,16 +137,26 @@ export async function getActiveWorkout(db: Db, userId: string, now = Date.now())
   return toWorkoutDto(w, sets);
 }
 
+/**
+ * Starts workout `id` (idempotent). The app starts one only when it knows of none running, and may
+ * sync it late (offline). A different workout still open here (another device, an outdated cache)
+ * therefore ends at its last set, so the sets queued for `id` always find their workout.
+ */
 export async function startWorkout(
   db: Db,
   userId: string,
   tz: string,
   input: { id: string; startedAt?: number },
 ): Promise<WorkoutDto> {
-  const active = await getActiveWorkout(db, userId);
-  if (active) return active;
   const existing = await findWorkout(db, userId, input.id);
   if (existing) return toWorkoutDto(existing, await setsOf(db, userId, existing.id));
+  const active = await getActiveWorkout(db, userId);
+  if (active) {
+    const w = await findWorkout(db, userId, active.id);
+    const sets = await setsOf(db, userId, active.id);
+    const last = sets.reduce((m, x) => Math.max(m, x.performedAt), active.startedAt);
+    if (w) await closeWorkout(db, userId, w, sets, last);
+  }
 
   const now = Date.now();
   const startedAt = input.startedAt ?? now;
@@ -174,9 +184,10 @@ export async function finishWorkout(db: Db, userId: string, id: string, endedAt 
   return closeWorkout(db, userId, w, await setsOf(db, userId, id), Math.max(endedAt, w.startedAt));
 }
 
+/** Idempotent: deleting a workout that is already gone is a no-op. */
 export async function deleteWorkout(db: Db, userId: string, id: string) {
   const w = await findWorkout(db, userId, id);
-  if (!w) throw new NotFoundError("workout");
+  if (!w) return;
   await db.batch([
     db.delete(workoutSet).where(and(eq(workoutSet.userId, userId), eq(workoutSet.workoutId, id))),
     db.delete(workout).where(and(eq(workout.userId, userId), eq(workout.id, id))),

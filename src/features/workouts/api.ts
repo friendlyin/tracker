@@ -1,7 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { uuidv7 } from "../../../shared/id";
+import { localDate } from "../../../shared/time";
 import type { CreateExerciseInput, UpdateExerciseInput } from "../../../shared/workouts/schemas";
-import type { WorkoutSettings, WorkoutSettingsPatch } from "../../../shared/workouts/settings";
+import {
+  applyWorkoutSettingsPatch,
+  type WorkoutSettingsPatch,
+} from "../../../shared/workouts/settings";
 import type {
   ExerciseDto,
   ExerciseSessionDto,
@@ -9,7 +13,7 @@ import type {
   WorkoutDto,
   WorkoutsOverviewDto,
 } from "../../../shared/workouts/types";
-import { api } from "../../lib/api";
+import { api, deviceTimeZone, queueWrite } from "../../lib/api";
 
 export const keys = {
   overview: ["workouts", "overview"] as const,
@@ -18,14 +22,17 @@ export const keys = {
   workout: (id: string) => ["workouts", "workout", id] as const,
 };
 
-export const useOverview = () =>
-  useQuery({ queryKey: keys.overview, queryFn: () => api<WorkoutsOverviewDto>("/overview") });
+export const overviewQuery = queryOptions({
+  queryKey: keys.overview,
+  queryFn: () => api<WorkoutsOverviewDto>("/overview"),
+});
+export const useOverview = () => useQuery(overviewQuery);
 
-export const useExercises = () =>
-  useQuery({
-    queryKey: keys.exercises,
-    queryFn: () => api<ExerciseDto[]>("/exercises?archived=1"),
-  });
+export const exercisesQuery = queryOptions({
+  queryKey: keys.exercises,
+  queryFn: () => api<ExerciseDto[]>("/exercises?archived=1"),
+});
+export const useExercises = () => useQuery(exercisesQuery);
 
 export const useExerciseHistory = (exerciseId: string) =>
   useQuery({
@@ -44,30 +51,62 @@ function useInvalidateAll() {
   };
 }
 
+/** Starts a workout on the phone; resolves with it at once, so sets can be logged offline. */
 export function useStartWorkout() {
   const qc = useQueryClient();
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: () => api<WorkoutDto>("/workouts", { body: { id: uuidv7() } }),
-    onSuccess: (w) => {
+    mutationFn: async () => {
+      const startedAt = Date.now();
+      const tz = deviceTimeZone();
+      const w: WorkoutDto = {
+        id: uuidv7(startedAt),
+        startedAt,
+        endedAt: null,
+        localDate: localDate(startedAt, tz),
+        tz,
+        sets: [],
+      };
+      await qc.cancelQueries({ queryKey: keys.overview });
       qc.setQueryData<WorkoutsOverviewDto>(keys.overview, (o) => (o ? { ...o, active: w } : o));
-      invalidate();
+      await queueWrite("/workouts", { body: { id: w.id, startedAt } });
+      return w;
     },
+    onSettled: invalidate,
   });
 }
 
 export function useFinishWorkout() {
+  const qc = useQueryClient();
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (id: string) => api<WorkoutDto | null>(`/workouts/${id}/finish`, { body: {} }),
+    mutationFn: (id: string) =>
+      queueWrite(`/workouts/${id}/finish`, { body: { endedAt: Date.now() } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: keys.overview });
+      qc.setQueryData<WorkoutsOverviewDto>(keys.overview, (o) =>
+        o?.active?.id === id ? { ...o, active: null } : o,
+      );
+    },
     onSettled: invalidate,
   });
 }
 
 export function useDeleteWorkout() {
+  const qc = useQueryClient();
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (id: string) => api(`/workouts/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => queueWrite(`/workouts/${id}`, { method: "DELETE" }),
+    onMutate: (id) =>
+      qc.setQueryData<WorkoutsOverviewDto>(keys.overview, (o) =>
+        o
+          ? {
+              ...o,
+              active: o.active?.id === id ? null : o.active,
+              recent: o.recent.filter((w) => w.id !== id),
+            }
+          : o,
+      ),
     onSettled: invalidate,
   });
 }
@@ -90,7 +129,7 @@ export function useAddSet() {
   const qc = useQueryClient();
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (s: SetDto) => api<SetDto>("/sets", { body: s }),
+    mutationFn: (s: SetDto) => queueWrite("/sets", { body: s }),
     onMutate: async (s) => {
       await qc.cancelQueries({ queryKey: keys.overview });
       patchSetCaches(qc, s.workoutId, (sets) => [...sets, s]);
@@ -109,7 +148,7 @@ export function useUpdateSet() {
   const invalidate = useInvalidateAll();
   return useMutation({
     mutationFn: (s: SetDto) =>
-      api<SetDto>(`/sets/${s.id}`, {
+      queueWrite(`/sets/${s.id}`, {
         method: "PATCH",
         body: { kind: s.kind, reps: s.reps, weightKg: s.weightKg },
       }),
@@ -123,27 +162,49 @@ export function useDeleteSet() {
   const qc = useQueryClient();
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (s: SetDto) => api(`/sets/${s.id}`, { method: "DELETE" }),
+    mutationFn: (s: SetDto) => queueWrite(`/sets/${s.id}`, { method: "DELETE" }),
     onMutate: (s) => patchSetCaches(qc, s.workoutId, (sets) => sets.filter((x) => x.id !== s.id)),
     onSettled: invalidate,
   });
 }
 
+type SaveExercise =
+  | { id: string; isNew: true; data: Omit<CreateExerciseInput, "id"> }
+  | { id: string; isNew: false; data: UpdateExerciseInput };
+
+/** Patches the cached exercise list (a new exercise must be usable before it syncs). */
+function patchExercises(
+  qc: ReturnType<typeof useQueryClient>,
+  fn: (list: ExerciseDto[]) => ExerciseDto[],
+) {
+  qc.setQueryData<ExerciseDto[]>(keys.exercises, (l) => fn(l ?? []));
+}
+
 export function useSaveExercise() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (
-      e:
-        | { id: string; isNew: true; data: Omit<CreateExerciseInput, "id"> }
-        | {
-            id: string;
-            isNew: false;
-            data: UpdateExerciseInput;
-          },
-    ) =>
+    mutationFn: (e: SaveExercise) =>
       e.isNew
-        ? api<ExerciseDto>("/exercises", { body: { id: e.id, ...e.data } })
-        : api<ExerciseDto>(`/exercises/${e.id}`, { method: "PATCH", body: e.data }),
+        ? queueWrite("/exercises", { body: { id: e.id, ...e.data } })
+        : queueWrite(`/exercises/${e.id}`, { method: "PATCH", body: e.data }),
+    onMutate: async (e) => {
+      await qc.cancelQueries({ queryKey: keys.exercises });
+      patchExercises(qc, (list) =>
+        e.isNew
+          ? [
+              ...list,
+              {
+                id: e.id,
+                ...e.data,
+                archived: false,
+                custom: true,
+                usageRecent: 0,
+                usageTotal: 0,
+              },
+            ]
+          : list.map((x) => (x.id === e.id ? { ...x, ...e.data } : x)),
+      );
+    },
     onSettled: () => qc.invalidateQueries({ queryKey: ["workouts"] }),
   });
 }
@@ -152,7 +213,9 @@ export function useArchiveExercise() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, archived }: { id: string; archived: boolean }) =>
-      api<ExerciseDto>(`/exercises/${id}/archive`, { body: { archived } }),
+      queueWrite(`/exercises/${id}/archive`, { body: { archived } }),
+    onMutate: ({ id, archived }) =>
+      patchExercises(qc, (list) => list.map((x) => (x.id === id ? { ...x, archived } : x))),
     onSettled: () => qc.invalidateQueries({ queryKey: ["workouts"] }),
   });
 }
@@ -161,7 +224,11 @@ export function useUpdateWorkoutSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (patch: WorkoutSettingsPatch) =>
-      api<WorkoutSettings>("/settings", { method: "PATCH", body: patch }),
+      queueWrite("/settings", { method: "PATCH", body: patch }),
+    onMutate: (patch) =>
+      qc.setQueryData<WorkoutsOverviewDto>(keys.overview, (o) =>
+        o ? { ...o, settings: applyWorkoutSettingsPatch(o.settings, patch) } : o,
+      ),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["workouts"] });
       qc.invalidateQueries({ queryKey: ["home"] });

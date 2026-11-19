@@ -35,6 +35,8 @@ export const logFocusInput = z.object({
   kind: z.enum(focusKinds),
   tag: tag.optional(),
   minutes,
+  /** When they were added, ISO 8601 with offset; default now. */
+  time: isoTime.optional(),
 });
 export type LogFocusInput = z.infer<typeof logFocusInput>;
 
@@ -58,6 +60,8 @@ export type UpdateFocusInput = z.infer<typeof updateFocusInput>;
 export const stopFocusInput = z.object({
   /** When it stopped, ISO 8601 with offset; default now. */
   time: isoTime.optional(),
+  /** Stop only this timer (no-op if it already stopped); default every running timer. */
+  id: z.uuid().optional(),
 });
 
 export const setSleepInput = z.object({

@@ -20,7 +20,7 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 5 | Focus energy | ✅ |
 | 6 | Deploy to Cloudflare, login, connect Claude | ✅ |
 | 7 | Stats engine and Overview | next |
-| 8 | Offline-proof logging | |
+| 8 | Offline-proof logging | ✅ |
 | 9 | WHOOP | |
 | 10 | Habits | |
 | 11 | Mood and emotions | |
@@ -450,7 +450,7 @@ out. It is a second configuration of the level engine.
 - logging:
   - `log_focus_session(tier deep | moderate, minutes, tag?, id?)` and `log_unfocus(minutes, id?)`,
     for minutes added afterwards (no time of day);
-  - `start_focus(kind deep | moderate | unfocus, tag?)` and `stop_focus(time?)`, for timers;
+  - `start_focus(kind deep | moderate | unfocus, tag?)` and `stop_focus(time?, id?)`, for timers;
   - `set_sleep_quality(quality, date?)`.
 - entries: `list_focus(date | from–to)`, `update_focus_entry` (minutes, tag) and `delete_focus_entry`
 - settings: `get_focus_settings`, `set_focus_settings`
@@ -562,10 +562,50 @@ Overview: all features in one screen for the selected period, plus a day detail 
 
 MCP: `list_metrics`, `get_metrics` for cross-feature insights.
 
-## Iteration 8: Offline-proof logging
+## Iteration 8: Offline-proof logging ✅
 
 Logging works with no signal (gym): mutations queue in IndexedDB and sync on reconnect, without
 conflicts thanks to client-generated IDs. Includes a sync-state indicator.
+
+✅ Built:
+- **Outbox** (`src/lib/outbox.ts`): every write from the app goes through `queueWrite`.
+  - The write is saved in IndexedDB (separate from the query cache, so a new build doesn't clear
+    it).
+  - Writes are sent one at a time, in the order they were made, and sync after the app is closed
+    and reopened.
+  - The screen updates optimistically, and the queries refetch once the queue is empty.
+  - Reads send the queue first, so a refetch never hides a write that is still queued.
+- **Late replay gives the same result:**
+  - the phone sets ids, times and the timezone of each write when it is made;
+  - workout start and finish carry the phone's times, and focus minutes carry the time they were
+    added;
+  - stopping focus names the timer;
+  - deleting a workout twice is a no-op;
+  - starting workout X while another one is still open ends that one at its last set, so the sets
+    queued for X always find it.
+- **Server answers:**
+
+  | Answer | What happens to the write |
+  |---|---|
+  | 2xx | Done. |
+  | 404 | Target gone; dropped. |
+  | Other 4xx | Dropped and shown as refused. |
+  | 401 | Kept, then the Access login. |
+  | 5xx or no network | Kept; retried after 2 s, 5 s, 15 s, then every 60 s, and also when the network comes back, the app comes to the front, a new write is made or a screen refreshes. |
+- **The main screens work offline after an update:**
+  - a new build starts with an empty cache, so after the saved cache is restored the app loads the
+    home, workouts, exercises, water, focus and today's nutrition data;
+  - the weekly budget numbers update after sync; the logged sets show at once.
+- **Indicator** (`src/ui/SyncState.tsx`), in the header of every screen:
+  - the count of unsynced writes, hidden when everything is synced;
+  - writes the server refused show in the warning color until tapped.
+  - Variants: `icon` (cloud + count), `arrow` (arrow + count) and `line` (a line under the header).
+    To pick on the phone.
+- **App updates:** a page left open across a deploy could not load screens it hadn't opened yet
+  (Safari: "'text/html' is not a valid JavaScript MIME type").
+  - The page now reloads as soon as a new build takes over, and it checks for one whenever the app
+    comes to the front (`src/lib/pwa.ts`).
+  - A chunk that still fails to load triggers one reload.
 
 ## Iteration 9: WHOOP integration
 
@@ -644,3 +684,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Design: focus screen with energy, forecast and a threshold bar (no curve); home focus tile with energy and a bar. |
 | 2026-11-19 | Focus minutes added afterwards have no time of day and apply at once when added (no overlaps). One Start button opens a sheet to pick the kind, instead of a start button per kind. |
 | 2026-11-19 | Focus energy restarts each day at wake; no carry-over. Rate precedence: unfocus, deep, moderate, baseline. Setting sleep before the wake time starts the day early. |
+| 2026-11-19 | Offline: an own outbox in IndexedDB instead of TanStack's paused mutations. Those pause only when the browser reports offline (iOS often reports online with no usable signal), are lost when a deploy clears the cache, and need every mutation registered globally. |

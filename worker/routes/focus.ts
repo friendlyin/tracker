@@ -14,7 +14,8 @@ import { parseTime } from "../services/entries";
 import * as svc from "../services/focus";
 import { dayUser } from "../services/levels";
 
-// Writes answer with fresh inputs, so the client replaces its cache and simulates from there.
+// Writes answer with fresh inputs. The app sends writes through its offline outbox and refetches
+// instead; the answer is for other clients.
 
 const who = (c: Context<AppEnv>) => dayUser(c.var.user, c.var.tz);
 const inputs = async (c: Context<AppEnv>) => c.json(await svc.getFocusInputs(c.var.db, who(c)));
@@ -39,7 +40,8 @@ export const focusRoutes = new Hono<AppEnv>()
     return inputs(c);
   })
   .post("/focus/stop", zValidator("json", stopFocusInput), async (c) => {
-    await svc.stopFocus(c.var.db, who(c), parseTime(c.req.valid("json").time));
+    const { time, id } = c.req.valid("json");
+    await svc.stopFocus(c.var.db, who(c), parseTime(time), id);
     return inputs(c);
   })
   .put("/focus/sleep", zValidator("json", setSleepInput), async (c) => {

@@ -20,6 +20,8 @@ export default defineConfig({
     cloudflare(),
     VitePWA({
       registerType: "autoUpdate",
+      // Registered from src/lib/pwa.ts, which reloads the page when a new build takes over.
+      injectRegister: false,
       includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png", "icon.svg"],
       manifest: {
         name: "Tracker",
@@ -42,6 +44,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // A new build takes over at once (and src/lib/pwa.ts reloads the page). The plugin sets these
+        // only when it injects its own registration.
+        skipWaiting: true,
+        clientsClaim: true,
         // Precache the app shell only; never serve API/MCP/auth from the SW cache.
         navigateFallbackDenylist: [
           /^\/api\//,

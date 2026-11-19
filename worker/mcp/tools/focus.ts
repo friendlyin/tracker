@@ -61,8 +61,8 @@ export function registerFocusTools(server: McpServer, ctx: McpCtx) {
   tool(server, ctx, "stop_focus", {
     description: "Stop the running timer, at time (default now). Returns what was stopped.",
     input: stopFocusInput,
-    run: async ({ time }) => ({
-      stopped: await svc.stopFocus(db, u, parseTime(time)),
+    run: async ({ time, id }) => ({
+      stopped: await svc.stopFocus(db, u, parseTime(time), id),
       state: await state(),
     }),
   });

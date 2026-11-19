@@ -11,10 +11,12 @@ export const queryClient = new QueryClient({
       staleTime: 30_000,
       retry: 1,
     },
+    // Writes only enqueue to the outbox (src/lib/api.ts), which works offline; never pause them.
+    mutations: { networkMode: "always" },
   },
 });
 
-/** Last-known data in IndexedDB: the app opens with data instantly and offline (read-only). */
+/** Last-known data in IndexedDB: the app opens with data instantly and offline. */
 export const persister = createAsyncStoragePersister({
   storage: {
     getItem: (k) => get<string>(k).then((v) => v ?? null),
