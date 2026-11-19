@@ -10,7 +10,7 @@ Dashboard: https://dash.cloudflare.com. The left sidebar groups products. Worker
 renames menu items; if a name doesn't match, use the search box at the top of the dashboard.
 
 Placeholders used below: `<subdomain>` (your workers.dev subdomain), `<team>` (your Zero Trust team
-name), `<app-host>` (`health-app.<subdomain>.workers.dev`), `<github-user>`.
+name), `<app-host>` (`tracker.<subdomain>.workers.dev`), `<github-user>`.
 
 Steps are grouped by the iteration that needs them.
 
@@ -28,7 +28,7 @@ Steps are grouped by the iteration that needs them.
 ### A2. Choose your workers.dev subdomain
 1. Sidebar → **Compute (Workers) → Workers & Pages**.
 2. On first visit Cloudflare asks you to pick a subdomain. The app will be at
-   `https://health-app.<subdomain>.workers.dev`. Pick something that doesn't need to be your name; it is
+   `https://tracker.<subdomain>.workers.dev`. Pick something that doesn't need to be your name; it is
    public.
 
 ### A3. Connect the terminal to your account
@@ -50,7 +50,7 @@ pnpm wrangler whoami    # shows your account
 1. **Workers & Pages → Create application → Import a repository** → connect GitHub (grant access only
    to this repository) → select it.
 2. Settings on the next screen:
-   - **Project name:** `health-app`. It must match `name` in `wrangler.jsonc`.
+   - **Project name:** `tracker`. It must match `name` in `wrangler.jsonc`.
    - **Build command:** `pnpm build`
    - **Deploy command:** `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote`
 3. Click **Deploy**. On the first deploy wrangler creates the D1 database because the binding has no id.
@@ -62,7 +62,7 @@ pnpm wrangler whoami    # shows your account
 5. Don't run `pnpm deploy` from your computer for the first deploy. A local deploy writes the new
    database id into `wrangler.jsonc`, and it shouldn't be committed.
 
-Where to look afterwards: **Workers & Pages → health-app**:
+Where to look afterwards: **Workers & Pages → tracker**:
 - **Overview / Metrics**: requests, errors, CPU time. Free allows 10 ms CPU per request.
 - **Deployments**: history of versions, with **Rollback** if a deploy breaks something.
 - **Logs**: live and stored logs (enabled by `observability` in `wrangler.jsonc`).
@@ -78,7 +78,7 @@ See [architecture.md §3](architecture.md#3-authentication) for why.
    2. Choose the **Free** plan. It may ask for a payment method even though it costs $0.
 2. **Check the login method:** Zero Trust → **Settings → Authentication → Login methods**.
    **One-time PIN** is there by default (email + 6-digit code).
-3. **Protect the app:** **Workers & Pages → health-app → Settings → Domains & Routes**. On the
+3. **Protect the app:** **Workers & Pages → tracker → Settings → Domains & Routes**. On the
    `workers.dev` row, enable **Cloudflare Access**. This creates an Access application for the Worker.
 4. **Allowlist:** Zero Trust → **Access → Applications** → open the new application → **Policies**.
    1. Add a policy: Action **Allow**, Include → **Emails** → your email and those of the people you
@@ -102,7 +102,7 @@ Secrets are keys and settings the Worker needs that must not be in the repositor
 pnpm wrangler secret put ACCESS_TEAM_DOMAIN   # https://<team>.cloudflareaccess.com
 pnpm wrangler secret put ACCESS_AUD           # the AUD tag from A6
 ```
-Dashboard alternative: **Workers & Pages → health-app → Settings → Variables and Secrets → + Add** →
+Dashboard alternative: **Workers & Pages → tracker → Settings → Variables and Secrets → + Add** →
 Type **Secret** → name + value → **Deploy**. Values stay hidden after saving.
 
 For local development, put local values in `.dev.vars` (git-ignored). Copy `.dev.vars.example` when it
@@ -117,12 +117,12 @@ is added in iteration 1.
 - **Automatic:** D1 Time Travel keeps point-in-time history (7 days on Free, 30 days on Paid).
   Restore with:
   ```bash
-  pnpm wrangler d1 time-travel restore health-db --timestamp=2026-11-19T10:00:00Z
+  pnpm wrangler d1 time-travel restore tracker-db --timestamp=2026-11-19T10:00:00Z
   ```
 - **Manual export** (worth doing occasionally). Backups contain health data: keep them outside the
   repository folder.
   ```bash
-  pnpm wrangler d1 export health-db --remote --output=$HOME/health-backup-$(date +%F).sql
+  pnpm wrangler d1 export tracker-db --remote --output=$HOME/tracker-backup-$(date +%F).sql
   ```
 
 ### A10. Later: custom domain
@@ -130,7 +130,7 @@ Not needed; the `workers.dev` address is fine. If you switch later, reconnect Cl
 re-install the PWA. Access path rules are simplest on a custom domain.
 1. If you need a domain: sidebar → **Domain Registration → Register Domains**. Cloudflare sells at cost,
    roughly $10/year for `.com`.
-2. **Workers & Pages → health-app → Settings → Domains & Routes → + Add → Custom domain** → enter the
+2. **Workers & Pages → tracker → Settings → Domains & Routes → + Add → Custom domain** → enter the
    hostname → **Add domain**. Cloudflare creates the DNS record and HTTPS certificate; it takes a few
    minutes.
 3. Optionally turn off the `workers.dev` address in the same section, so there is a single entry point.
@@ -180,7 +180,7 @@ Each invited person connects their own Claude with their own account and sees on
    pnpm wrangler secret put WHOOP_CLIENT_SECRET
    ```
 3. The sync schedule is defined in `wrangler.jsonc` (`triggers.crons`). After deploy it appears under
-   **health-app → Settings → Trigger events**.
+   **tracker → Settings → Trigger events**.
 
 ---
 

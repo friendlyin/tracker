@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "health-app",
+  "name": "tracker",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -22,7 +22,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "health-db",
+      "database_name": "tracker-db",
       // No database_id on purpose: `wrangler deploy` creates the database on first deploy and reuses it
       // afterwards, so no account-specific ids live in this public repo (see docs/cloudflare-setup.md).
       "migrations_dir": "migrations"

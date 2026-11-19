@@ -1,5 +1,5 @@
 {
-  "name": "health-app",
+  "name": "tracker",
   "private": true,
   "version": "0.0.0",
   "license": "MIT",
@@ -19,8 +19,8 @@
     "test": "vitest run",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply health-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply health-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply tracker-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply tracker-db --remote",
     "prepare": "git config core.hooksPath .githooks || true",
     "check:private": "scripts/check-private.sh all"
   },
