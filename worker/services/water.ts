@@ -1,6 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
 import { METRICS } from "../../shared/metrics/registry";
-import type { DaySchedule } from "../../shared/schedule";
 import { addDays, localDate } from "../../shared/time";
 import { atCapMinutes, waterState } from "../../shared/water/model";
 import type { LogWaterInput } from "../../shared/water/schemas";
@@ -13,31 +12,24 @@ import {
 } from "../../shared/water/settings";
 import type { WaterEntryDto, WaterInputsDto, WaterStateDto } from "../../shared/water/types";
 import type { Db } from "../db";
-import { type EntryRow, entry, type User } from "../db/schema";
+import { type EntryRow, entry } from "../db/schema";
 import { checkRange, deleteEntry, listEntries, logEntry, parseTime } from "./entries";
+import { type ClosedDayRollup, type DayUser, finalizeClosedDays, refinalize } from "./levels";
 import { replaceMetrics } from "./metrics";
 import { getSetting, putSetting } from "./users";
 
 // Water domain: drinks are entries of the `water` tracker; pending water is simulated by the level
 // engine (shared/water/model.ts) on every read. The client runs the same simulation live.
 
-/** Who the water functions act for: the user, their latest timezone and their day schedule. */
-export interface WaterUser {
-  id: string;
-  tz: string;
-  schedule: DaySchedule;
-}
+export type { DayUser as WaterUser } from "./levels";
+export { dayUser as waterUser } from "./levels";
 
-export const waterUser = (u: User, tz: string): WaterUser => ({
-  id: u.id,
-  tz,
-  schedule: { wakeTime: u.wakeTime, sleepTime: u.sleepTime },
+/** `water.at_cap_min` is final up to the date kept under `water.finalized`. */
+const rollup = (db: Db, u: DayUser): ClosedDayRollup => ({
+  key: "water.finalized",
+  trackers: ["water"],
+  write: (from, to) => writeAtCap(db, u, from, to),
 });
-
-/** The last local date whose `water.at_cap_min` is final. */
-const FINALIZED_KEY = "water.finalized";
-/** Closed days are finalised at most this far back (the app was not opened for a while). */
-const MAX_FINALIZE_DAYS = 14;
 
 function toDto(r: EntryRow): WaterEntryDto {
   return {
@@ -58,7 +50,7 @@ export async function getWaterSettings(db: Db, userId: string): Promise<WaterSet
 /** Changing the settings updates today's target rollup only; past days keep theirs. */
 export async function setWaterSettings(
   db: Db,
-  u: WaterUser,
+  u: DayUser,
   patch: WaterSettingsPatch,
 ): Promise<WaterSettings> {
   const next = applyWaterSettingsPatch(await getWaterSettings(db, u.id), patch);
@@ -90,7 +82,7 @@ async function writeTarget(db: Db, userId: string, date: string, settings?: Wate
 }
 
 /** Writes `water.at_cap_min` for closed days in [from, to]. */
-async function writeAtCap(db: Db, u: WaterUser, from: string, to: string) {
+async function writeAtCap(db: Db, u: DayUser, from: string, to: string) {
   const [settings, rows] = await Promise.all([
     getWaterSettings(db, u.id),
     listEntries(db, u.id, "water", { from: addDays(from, -1), to }),
@@ -113,49 +105,21 @@ async function writeAtCap(db: Db, u: WaterUser, from: string, to: string) {
   }
 }
 
-/**
- * Time at the cap keeps growing while a day is open, so it is written once the day is over: on the
- * first water read or write of a new day, for the days since the last run (at most 14, never before
- * the first water entry).
- */
-async function finalizeClosedDays(db: Db, u: WaterUser, now: number) {
-  const yesterday = addDays(localDate(now, u.tz), -1);
-  const done = (await getSetting(db, u.id, FINALIZED_KEY)) as string | undefined;
-  if (done && done >= yesterday) return;
-  const [first] = await db
-    .select({ d: sql<string | null>`min(${entry.localDate})` })
-    .from(entry)
-    .where(and(eq(entry.userId, u.id), eq(entry.tracker, "water")));
-  if (!first?.d) return;
-  const from = [
-    done ? addDays(done, 1) : first.d,
-    first.d,
-    addDays(yesterday, 1 - MAX_FINALIZE_DAYS),
-  ]
-    .sort()
-    .at(-1) as string;
-  if (from <= yesterday) await writeAtCap(db, u, from, yesterday);
-  await putSetting(db, u.id, FINALIZED_KEY, yesterday);
-}
-
 /** After a write: the day's target, and the at-cap minutes if a finalised day changed. */
-async function afterWrite(db: Db, u: WaterUser, date: string) {
+async function afterWrite(db: Db, u: DayUser, date: string) {
   await writeTarget(db, u.id, date);
-  const done = (await getSetting(db, u.id, FINALIZED_KEY)) as string | undefined;
-  if (!done || date > done) return;
   // The day's drinks also shape the next day's start.
-  const next = addDays(date, 1);
-  await writeAtCap(db, u, date, next <= done ? next : date);
+  await refinalize(db, u, rollup(db, u), date, addDays(date, 1));
 }
 
 // ---------- reads ----------
 
 export async function getWaterInputs(
   db: Db,
-  u: WaterUser,
+  u: DayUser,
   now = Date.now(),
 ): Promise<WaterInputsDto> {
-  await finalizeClosedDays(db, u, now);
+  await finalizeClosedDays(db, u, rollup(db, u), now);
   const today = localDate(now, u.tz);
   const [settings, rows] = await Promise.all([
     getWaterSettings(db, u.id),
@@ -164,7 +128,7 @@ export async function getWaterInputs(
   return { tz: u.tz, schedule: u.schedule, settings, entries: rows.map(toDto) };
 }
 
-export async function getWaterState(db: Db, u: WaterUser, now = Date.now()) {
+export async function getWaterState(db: Db, u: DayUser, now = Date.now()) {
   return waterState(await getWaterInputs(db, u, now), now);
 }
 
@@ -184,7 +148,7 @@ export async function listWater(
 
 export async function logWater(
   db: Db,
-  u: WaterUser,
+  u: DayUser,
   input: LogWaterInput,
   source: "app" | "mcp",
 ): Promise<WaterEntryDto> {
@@ -200,7 +164,7 @@ export async function logWater(
 }
 
 /** Returns the entry's local date, or null when it didn't exist (idempotent). */
-export async function deleteWater(db: Db, u: WaterUser, id: string): Promise<string | null> {
+export async function deleteWater(db: Db, u: DayUser, id: string): Promise<string | null> {
   const row = await deleteEntry(db, u.id, "water", id);
   if (!row) return null;
   await afterWrite(db, u, row.localDate);

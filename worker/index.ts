@@ -5,6 +5,7 @@ import { localDate } from "../shared/time";
 import { type AppEnv, requireUser } from "./auth";
 import type { User } from "./db/schema";
 import { handleMcp } from "./mcp";
+import { focusRoutes } from "./routes/focus";
 import { nutritionRoutes } from "./routes/nutrition";
 import { waterRoutes } from "./routes/water";
 import { workoutRoutes } from "./routes/workouts";
@@ -42,7 +43,8 @@ const api = new Hono<AppEnv>()
   })
   .route("/", workoutRoutes)
   .route("/", nutritionRoutes)
-  .route("/", waterRoutes);
+  .route("/", waterRoutes)
+  .route("/", focusRoutes);
 
 api.onError((err, c) => {
   if (err instanceof NotFoundError) return c.json({ error: "not_found", what: err.message }, 404);
