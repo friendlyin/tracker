@@ -72,7 +72,7 @@ limit (most likely from password hashing or heavy statistics) or want 30-day bac
 | API | Hono on Workers | Small and fast. The PWA calls it with a thin fetch wrapper; request/response types live in `shared/` (`hono/client` would pull Worker types into the browser build). |
 | Validation | zod | One schema for API input, MCP tool input and forms. |
 | DB | D1 + Drizzle ORM + drizzle-kit | Typed queries; SQL migrations applied by wrangler. |
-| Auth | Cloudflare Access (chosen); Better Auth as fallback | See §3. Confirmed by a test on the iPhone in iteration 6 (deploy). |
+| Auth | Cloudflare Access | See §3. Confirmed by a test on the iPhone in iteration 6 (deploy). |
 | MCP | Agents SDK (`agents`) + `@modelcontextprotocol/sdk` + `@cloudflare/workers-oauth-provider` | Streamable-HTTP MCP endpoint at `/mcp` with OAuth 2.1, so it works as a claude.ai custom connector and in Claude Code. |
 | PWA | vite-plugin-pwa (Workbox) | Manifest, service worker, app-shell caching. |
 | Charts | Decided in the Stats iteration, using design variants | Candidates: hand-written SVG (most control over a flat look), visx, Recharts. |
@@ -129,12 +129,12 @@ external identity provider.
 - Sessions last at most **1 month** (configurable from 15 min). After that you enter an email code
   again.
 - Login happens on a Cloudflare page (`<team>.cloudflareaccess.com`). Inside an installed iOS PWA this
-  redirect usually works, but iOS standalone mode has known cookie quirks. **Must be tested on the
-  iPhone first.**
+  redirect usually works, but iOS standalone mode has known cookie quirks. Tested in iteration 6:
+  login works in the installed PWA on the iPhone.
 - The MCP and OAuth paths (`/mcp`, `/authorize`, `/token`, `/register`, `/.well-known/*`) must be
   excluded from the app's Access gate with a bypass rule, because Claude cannot log in through it.
-  Path-level rules are standard on custom domains; on `workers.dev` this needs verifying. Fallback: a
-  custom domain.
+  Tested in iteration 6: a second Access application with Bypass and one destination per path works
+  on `workers.dev`, because Access applies the application with the most specific path.
 - More dashboard configuration (Zero Trust setup) and less code. The Zero Trust signup may ask for a
   payment method even on the free plan.
 - Local development has no Access, so the dev server uses a fixed dev user.
@@ -158,8 +158,7 @@ Start iteration 6 (deploy) with a **30-minute test**:
 3. Install the PWA on the iPhone and check login, re-opening after a day, and that the bypass for
    `/mcp` works on `workers.dev`.
 
-If all of that works, use Access and remove the `better-auth` dependency. If anything fails, switch to
-Option 2. Either way, MCP uses `workers-oauth-provider` and every token carries the `userId`, which
+Result: login and the bypass work on `workers.dev`, so Access is used and `better-auth` was removed. Either way, MCP uses `workers-oauth-provider` and every token carries the `userId`, which
 every MCP tool uses. Each invited person connects their own Claude with their own account the same way.
 
 ## 4. MCP server
@@ -203,8 +202,7 @@ Refined in each iteration. All user tables have `user_id`, `created_at`, `update
 The three shared engines (tracking, level, metrics) are described in
 [requirements.md](requirements.md#shared-engines).
 
-- **Users**: `user` (id, email, name, timezone, wake_time, sleep_time). Plus Better Auth tables only if
-  Option 2 is chosen.
+- **Users**: `user` (id, email, name, timezone, wake_time, sleep_time).
 - **Settings**: `user_setting` (user, feature key → JSON), validated by a zod schema per feature.
 - **Tracking engine**: `entry` (tracker key, occurred_at, ended_at, tz, local_date, value, note, data
   JSON, source app/mcp). Tracker definitions (kind, unit, data schema, rollup) are code in

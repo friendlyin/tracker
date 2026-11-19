@@ -20,7 +20,7 @@ MCP server.
   migrations are in `migrations/`.
 - **Shared**: `shared/` holds zod schemas, domain types and pure calculations used by both client and
   Worker (weekly set budget, water accumulation, nutrition targets). Unit-test these.
-- **Auth**: Cloudflare Access (email one-time code, email allowlist); Better Auth only as a fallback.
+- **Auth**: Cloudflare Access (email one-time code, email allowlist).
   See docs/architecture.md §3. `@cloudflare/workers-oauth-provider` handles OAuth for MCP clients.
 - **MCP**: `agents` (Cloudflare Agents SDK) + `@modelcontextprotocol/sdk`.
 - **Tooling**: pnpm, Biome (lint + format), Vitest.

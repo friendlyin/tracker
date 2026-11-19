@@ -94,7 +94,9 @@ See [architecture.md §3](architecture.md#3-authentication) for why. The Zero Tr
 4. **Protect the app** (after the first deploy in A5, so the Worker exists): Zero Trust → **Access
    controls → Applications → Add an application → Self-hosted and private** → **Continue**. The tabs
    in the middle of that dialog only switch the example diagram.
-   - Name: `tracker`. Destination: the `tracker` Worker, or the public hostname `<app-host>`.
+   - Name: `tracker`. Destination: the public hostname `<app-host>` with an empty path. (A **Workers**
+     destination also works, but if step 6 then fails with "destination belongs to another
+     application", switch it to the public hostname.)
    - Policy: `Tracker users`. Login method: **One-time PIN**. Session duration: **1 month**.
    - Save, then open `https://<app-host>` in a private window: the Cloudflare email-code page should
      appear before the app.
@@ -106,9 +108,12 @@ See [architecture.md §3](architecture.md#3-authentication) for why. The Zero Tr
    hex string). The text there about a "token validation script" refers to the Worker's own check
    (`worker/auth.ts`); nothing else to set up. The team domain is
    `https://<team>.cloudflareaccess.com`. Store both as secrets (A7).
-6. **Bypass for Claude** (needed for Part B; test it now): add a second Access application for
-   the same host with the paths `/mcp`, `/authorize`, `/token`, `/register`, `/callback` and
-   `/.well-known/`. Give it one policy with Action **Bypass**, Include **Everyone**. The Worker protects
+6. **Bypass for Claude** (needed for Part B; test it now): add a second Access application
+   (**Self-hosted and private**, name `tracker-mcp`) with six **public hostname** destinations on
+   `<app-host>`, paths `mcp`, `authorize`, `token`, `register`, `callback` and `.well-known`. Delete
+   any **Workers** destination the dialog adds: it belongs to the first application, and keeping it
+   fails with "destination belongs to another application". Give it one policy with Action
+   **Bypass**, Include **Everyone**. Access applies the application with the most specific path. The Worker protects
    these paths with its own OAuth. Check that `https://<app-host>/mcp` answers
    `{"error":"unauthorized"}` instead of showing the Access login page (until Part B, `/mcp` accepts
    no logins at all).

@@ -532,6 +532,8 @@ Everything from iterations 1–5 goes live on your own Cloudflare account.
 - **Cloudflare Access** with email one-time-code login and an email allowlist. Run the 30-minute test
   on the iPhone: log in, Add to Home Screen, reopen the next day, check the bypass for the MCP paths.
   Fall back to Better Auth (email + password) only if it fails; otherwise remove `better-auth`.
+  ✅ Done: login works in the installed PWA, and the bypass works on `workers.dev` (a second Access
+  application with one destination per path). `better-auth` is removed.
 - **MCP OAuth:** `@cloudflare/workers-oauth-provider` with Access for SaaS as the identity provider
   (steps B1–B3), so claude.ai (web, desktop, mobile) and Claude Code connect with each person's own
   login.
@@ -612,6 +614,7 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Focus energy is priority 4, before stats. |
 | 2026-11-19 | Shared tracking, level and metrics engines instead of per-feature logic. |
 | 2026-11-19 | Auth: Cloudflare Access with email-code login; Better Auth only as fallback. |
+| 2026-11-19 | Access confirmed on the iPhone PWA and `workers.dev`; Better Auth dropped. Setup uses Zero Trust self-hosted applications, not the Worker's one-click Access dialog. |
 | 2026-11-19 | Minor groups: biceps, triceps, core. |
 | 2026-11-19 | Day schedule defaults 07:00–23:00, later replaced by WHOOP sleep data. |
 | 2026-11-19 | Sleep quality: good / ok / bad. Focus sessions: live timer and logging afterwards. |
