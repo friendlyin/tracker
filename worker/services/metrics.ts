@@ -1,7 +1,13 @@
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { METRICS } from "../../shared/metrics/registry";
+import {
+  type MetricRow,
+  TRACKERS,
+  type TrackerDef,
+  type TrackerKey,
+} from "../../shared/tracking/trackers";
 import { chunkRows, type Db } from "../db";
-import { exerciseMuscle, metricDaily, workout, workoutSet } from "../db/schema";
+import { entry, exerciseMuscle, metricDaily, workout, workoutSet } from "../db/schema";
 
 const WORKOUT_METRICS = [
   METRICS.workoutsCount.id,
@@ -46,14 +52,11 @@ export async function recomputeWorkoutDay(db: Db, userId: string, localDate: str
       .groupBy(workoutSet.exerciseId),
   ]);
 
-  const rows: (typeof metricDaily.$inferInsert)[] = [];
+  const rows: MetricRow[] = [];
   const workouts = countRows[0]?.n ?? 0;
-  if (workouts > 0)
-    rows.push({ userId, localDate, metric: METRICS.workoutsCount.id, value: workouts });
+  if (workouts > 0) rows.push({ metric: METRICS.workoutsCount.id, value: workouts });
   for (const g of groupRows) {
     rows.push({
-      userId,
-      localDate,
       metric: METRICS.workingSets.id,
       dimension: g.group,
       value: g.value,
@@ -61,21 +64,29 @@ export async function recomputeWorkoutDay(db: Db, userId: string, localDate: str
   }
   for (const e of exerciseRows) {
     rows.push({
-      userId,
-      localDate,
       metric: METRICS.topSet.id,
       dimension: e.exerciseId,
       value: e.top,
     });
     rows.push({
-      userId,
-      localDate,
       metric: METRICS.e1rm.id,
       dimension: e.exerciseId,
       value: e.e1rm,
     });
   }
 
+  await replaceMetrics(db, userId, localDate, WORKOUT_METRICS, rows);
+}
+
+/** Replaces one local day's rows of the given metrics in a single batch. */
+export async function replaceMetrics(
+  db: Db,
+  userId: string,
+  localDate: string,
+  metricIds: readonly string[],
+  rows: readonly MetricRow[],
+) {
+  const values = rows.map((r) => ({ userId, localDate, ...r }));
   await db.batch([
     db
       .delete(metricDaily)
@@ -83,9 +94,25 @@ export async function recomputeWorkoutDay(db: Db, userId: string, localDate: str
         and(
           eq(metricDaily.userId, userId),
           eq(metricDaily.localDate, localDate),
-          inArray(metricDaily.metric, WORKOUT_METRICS),
+          inArray(metricDaily.metric, [...metricIds]),
         ),
       ),
-    ...chunkRows(rows, 5).map((chunk) => db.insert(metricDaily).values(chunk)),
+    ...chunkRows(values, 5).map((chunk) => db.insert(metricDaily).values(chunk)),
   ]);
+}
+
+/** Rebuilds a tracker's rows of `metric_daily` for one local date. Called after every entry write. */
+export async function recomputeTrackerDay(
+  db: Db,
+  userId: string,
+  key: TrackerKey,
+  localDate: string,
+) {
+  const def: TrackerDef<unknown> = TRACKERS[key];
+  const rows = await db
+    .select()
+    .from(entry)
+    .where(and(eq(entry.userId, userId), eq(entry.tracker, key), eq(entry.localDate, localDate)));
+  // `data` was validated on write.
+  await replaceMetrics(db, userId, localDate, def.metricIds, def.metrics(rows));
 }

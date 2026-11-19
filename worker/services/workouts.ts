@@ -28,14 +28,16 @@ import type {
 } from "../../shared/workouts/types";
 import { chunkRows, type Db } from "../db";
 import { exercise, exerciseMuscle, workout, workoutSet } from "../db/schema";
+import { InvalidError, NotFoundError } from "./errors";
 import { recomputeWorkoutDay } from "./metrics";
+import { recomputeNutritionTargets } from "./nutrition";
 import { getSetting, putSetting } from "./users";
 
 // Workout domain logic. Every function takes the authenticated userId and filters by it. The API
-// routes and (iteration 3) the MCP tools are thin wrappers over these functions.
+// routes and the MCP tools are thin wrappers over these functions. Creating or deleting a workout
+// also refreshes the nutrition targets of that day, because the automatic day type follows workouts.
 
-export class NotFoundError extends Error {}
-export class InvalidError extends Error {}
+export { InvalidError, NotFoundError };
 
 /** An open workout with no new set for this long is closed automatically at its last set. */
 const STALE_MS = 3 * 60 * 60 * 1000;
@@ -108,6 +110,7 @@ async function closeWorkout(
 ) {
   if (sets.length === 0) {
     await db.delete(workout).where(and(eq(workout.userId, userId), eq(workout.id, w.id)));
+    await recomputeNutritionTargets(db, userId, w.localDate);
     return null;
   }
   const [row] = await db
@@ -161,6 +164,7 @@ export async function startWorkout(
     })
     .returning();
   if (!row) throw new Error("insert failed");
+  await recomputeNutritionTargets(db, userId, row.localDate);
   return toWorkoutDto(row, []);
 }
 
@@ -178,6 +182,7 @@ export async function deleteWorkout(db: Db, userId: string, id: string) {
     db.delete(workout).where(and(eq(workout.userId, userId), eq(workout.id, id))),
   ]);
   await recomputeWorkoutDay(db, userId, w.localDate);
+  await recomputeNutritionTargets(db, userId, w.localDate);
 }
 
 export async function getWorkout(db: Db, userId: string, id: string): Promise<WorkoutDto | null> {
@@ -472,6 +477,7 @@ export async function logWorkout(db: Db, userId: string, tz: string, input: LogW
     ...chunkRows(setRows, 12).map((rows) => db.insert(workoutSet).values(rows)),
   ]);
   await recomputeWorkoutDay(db, userId, date);
+  await recomputeNutritionTargets(db, userId, date);
   return getWorkout(db, userId, input.id);
 }
 

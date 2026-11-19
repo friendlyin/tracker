@@ -109,4 +109,41 @@ export const workoutSet = sqliteTable(
   ],
 );
 
+/**
+ * Tracking engine: one logged event of a tracker (meal, later water, focus sessions, habits…).
+ * `value` is in the tracker's unit (meal: kcal); `data` holds tracker-specific fields, validated by the
+ * tracker's zod schema in `shared/tracking/trackers.ts`.
+ */
+export const entry = sqliteTable(
+  "entry",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    tracker: text("tracker").notNull(),
+    occurredAt: integer("occurred_at").notNull(),
+    endedAt: integer("ended_at"),
+    tz: text("tz").notNull(),
+    localDate: text("local_date").notNull(),
+    value: real("value"),
+    note: text("note"),
+    data: text("data", { mode: "json" }).notNull(),
+    source: text("source", { enum: ["app", "mcp"] }).notNull(),
+    ...timestamps,
+  },
+  (t) => [index("entry_user_tracker_date_idx").on(t.userId, t.tracker, t.localDate)],
+);
+
+/** Manual day-type overrides for nutrition targets. Days without a row follow workouts. */
+export const dayType = sqliteTable(
+  "day_type",
+  {
+    userId: text("user_id").notNull(),
+    localDate: text("local_date").notNull(),
+    type: text("type", { enum: ["workout", "rest"] }).notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.localDate] })],
+);
+
 export type User = typeof user.$inferSelect;
+export type EntryRow = typeof entry.$inferSelect;
