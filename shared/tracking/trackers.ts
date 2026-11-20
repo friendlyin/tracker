@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { type FocusData, focusDataSchema, type SleepData, sleepDataSchema } from "../focus/schemas";
+import { type HabitData, habitDataSchema } from "../habits/schemas";
 import { METRICS } from "../metrics/registry";
 import { type MealData, mealDataSchema } from "../nutrition/schemas";
 import { sumMeals } from "../nutrition/summary";
@@ -68,6 +69,24 @@ const water: TrackerDef<WaterData> = {
   },
 };
 
+/** One row per habit (dimension: habit id) with the summed amounts of its entries. */
+function byHabit<D extends { habitId?: string }>(
+  entries: readonly TrackedEntry<D>[],
+  metric: string,
+  amount: (e: TrackedEntry<D>) => number,
+): MetricRow[] {
+  const sums = new Map<string, number>();
+  for (const e of entries) {
+    const id = e.data.habitId;
+    if (id) sums.set(id, (sums.get(id) ?? 0) + amount(e));
+  }
+  return [...sums].map(([dimension, value]) => ({
+    metric,
+    dimension,
+    value: Math.round(value * 100) / 100,
+  }));
+}
+
 /** Added minutes (`value`), or a stopped timer's length. */
 const minutes = (e: TrackedEntry<unknown>) =>
   e.value ?? (e.endedAt === null ? 0 : Math.max(0, e.endedAt - e.occurredAt) / 60_000);
@@ -86,6 +105,7 @@ const focus: TrackerDef<FocusData> = {
     METRICS.focusDeepSessions.id,
     METRICS.focusModerate.id,
     METRICS.focusUnfocus.id,
+    METRICS.habitMinutes.id,
   ],
   metrics(entries) {
     const done = entries.filter((e) => e.endedAt !== null || e.value !== null);
@@ -108,6 +128,7 @@ const focus: TrackerDef<FocusData> = {
     }
     const unfocus = of("unfocus");
     if (unfocus.length > 0) rows.push({ metric: METRICS.focusUnfocus.id, value: sum(unfocus) });
+    rows.push(...byHabit(done, METRICS.habitMinutes.id, minutes));
     return rows;
   },
 };
@@ -125,7 +146,17 @@ const sleep: TrackerDef<SleepData> = {
   },
 };
 
-export const TRACKERS = { meal, water, focus, sleep } as const;
+/** Check, count and amount habits; time habits are focus sessions. */
+const habit: TrackerDef<HabitData> = {
+  key: "habit",
+  kind: "quantity",
+  unit: "count",
+  data: habitDataSchema,
+  metricIds: [METRICS.habitAmount.id],
+  metrics: (entries) => byHabit(entries, METRICS.habitAmount.id, (e) => e.value ?? 0),
+};
+
+export const TRACKERS = { meal, water, focus, sleep, habit } as const;
 
 export type TrackerKey = keyof typeof TRACKERS;
 export type TrackerData<K extends TrackerKey> =

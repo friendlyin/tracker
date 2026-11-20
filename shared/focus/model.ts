@@ -16,7 +16,7 @@ import {
 } from "../level/engine";
 import { scheduleClock, sleepInstant, wakeDate, wakeInstant } from "../schedule";
 import { addDays, type LocalDate, localDate } from "../time";
-import type { FocusKind } from "./schemas";
+import type { FocusKind, SessionKind } from "./schemas";
 import type { FocusSettings, SleepQuality } from "./settings";
 import type { FocusEntryDto, FocusInputsDto, FocusStateDto, SleepDto } from "./types";
 
@@ -33,7 +33,7 @@ export const sleepValue: Record<SleepQuality, number> = { good: 3, ok: 2, bad: 1
 /** Minutes added afterwards, without a time: applied at once when they are added. */
 export interface FocusLump {
   at: number;
-  kind: FocusKind;
+  kind: SessionKind;
   minutes: number;
 }
 
@@ -43,7 +43,7 @@ export interface FocusLump {
  * Added minutes are a lump: the extra drain of the tier beyond the baseline (which already ran for
  * that time), or for unfocus the restore over that many minutes plus the baseline it paused.
  */
-export function focusModel(s: FocusSettings, ceiling: number): LevelModel<FocusLump, FocusKind> {
+export function focusModel(s: FocusSettings, ceiling: number): LevelModel<FocusLump, SessionKind> {
   const perMin = s.restorePerMin;
   const restore = {
     base: 60 * perMin * s.restoreFloor,
@@ -60,6 +60,8 @@ export function focusModel(s: FocusSettings, ceiling: number): LevelModel<FocusL
     },
     apply(level, e) {
       const h = e.minutes / 60;
+      // Not focus: only the awake drain, which already ran for that time.
+      if (e.kind === "other") return level;
       if (e.kind === "unfocus")
         return after(level, restore, e.minutes * MIN) + s.drain.baseline * h;
       return level - (s.drain[e.kind] - s.drain.baseline) * h;
@@ -118,7 +120,7 @@ function dayClock(inputs: FocusInputsDto, day: FocusDay): LevelClock {
 }
 
 /** Timer sessions run over time; a running one until `openUntil`. */
-const spansOf = (entries: readonly FocusEntryDto[], openUntil: number): LevelSpan<FocusKind>[] =>
+const spansOf = (entries: readonly FocusEntryDto[], openUntil: number): LevelSpan<SessionKind>[] =>
   entries
     .filter((e) => e.minutes === null)
     .map((e) => ({ from: e.startedAt, to: e.endedAt ?? openUntil, kind: e.kind }));
@@ -220,6 +222,7 @@ export function focusState(inputs: FocusInputsDto, now: number): FocusStateDto {
           tag: running.tag,
           startedAt: running.startedAt,
           targetMin: running.targetMin,
+          habitId: running.habitId,
         }
       : null,
     next: forecast(inputs, day, sim.level, now, running),

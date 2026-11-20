@@ -8,6 +8,7 @@ import type { User } from "./db/schema";
 import { handleMcp } from "./mcp";
 import { withOAuth } from "./oauth";
 import { focusRoutes } from "./routes/focus";
+import { habitRoutes } from "./routes/habits";
 import { nutritionRoutes } from "./routes/nutrition";
 import { statsRoutes } from "./routes/stats";
 import { waterRoutes } from "./routes/water";
@@ -48,7 +49,8 @@ const api = new Hono<AppEnv>()
   .route("/", nutritionRoutes)
   .route("/", waterRoutes)
   .route("/", focusRoutes)
-  .route("/", statsRoutes);
+  .route("/", statsRoutes)
+  .route("/", habitRoutes);
 
 api.onError((err, c) => {
   if (err instanceof NotFoundError) return c.json({ error: "not_found", what: err.message }, 404);

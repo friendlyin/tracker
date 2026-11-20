@@ -22,6 +22,7 @@ function inputs(entries: E[], sleep: [string, SleepQuality, string][] = []): Foc
       endedAt: to ? at(to) : null,
       minutes: null,
       targetMin: null,
+      habitId: null,
       localDate: localDate(at(from), "UTC"),
       source: "app",
     })),
@@ -135,6 +136,7 @@ describe("focus model", () => {
       endedAt: null,
       minutes: min,
       targetMin: null,
+      habitId: null,
       localDate: "2026-11-18",
       source: "app" as const,
     });
@@ -193,6 +195,7 @@ describe("focus model", () => {
       endedAt: null,
       minutes,
       targetMin: null,
+      habitId: null,
       localDate: "2026-11-18",
       source: "app" as const,
     });

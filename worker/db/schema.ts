@@ -145,6 +145,29 @@ export const entry = sqliteTable(
   (t) => [index("entry_user_tracker_date_idx").on(t.userId, t.tracker, t.localDate)],
 );
 
+/**
+ * User-defined habits. Progress is logged as entries: the `habit` tracker for check, count and
+ * amount habits, focus sessions (with `data.habitId`) for time habits.
+ */
+export const habit = sqliteTable(
+  "habit",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+    kind: text("kind", { enum: ["check", "time", "count", "amount"] }).notNull(),
+    target: real("target"),
+    unit: text("unit"),
+    focus: text("focus", { enum: ["deep", "moderate", "unfocus"] }),
+    /** Bitmask: Monday = 1 … Sunday = 64. */
+    days: integer("days").notNull(),
+    position: integer("position").notNull(),
+    archivedAt: integer("archived_at"),
+    ...timestamps,
+  },
+  (t) => [index("habit_user_idx").on(t.userId)],
+);
+
 /** Manual day-type overrides for nutrition targets. Days without a row follow workouts. */
 export const dayType = sqliteTable(
   "day_type",
@@ -159,3 +182,4 @@ export const dayType = sqliteTable(
 
 export type User = typeof user.$inferSelect;
 export type EntryRow = typeof entry.$inferSelect;
+export type HabitRow = typeof habit.$inferSelect;

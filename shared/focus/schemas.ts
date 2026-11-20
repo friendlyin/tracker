@@ -4,6 +4,12 @@ import { sleepQualities } from "./settings";
 
 export const focusKinds = ["deep", "moderate", "unfocus"] as const;
 export type FocusKind = (typeof focusKinds)[number];
+/**
+ * Kinds a session can have: the focus kinds, plus `other` for a time habit that does not count as
+ * focus (energy keeps the normal awake drain). `other` sessions come only from habits.
+ */
+export const sessionKinds = [...focusKinds, "other"] as const;
+export type SessionKind = (typeof sessionKinds)[number];
 
 const tag = z.string().trim().min(1).max(30);
 
@@ -12,11 +18,13 @@ const tag = z.string().trim().min(1).max(30);
  * running). Minutes added afterwards: `value` is the minutes, `occurred_at` when they were added.
  */
 export const focusDataSchema = z.object({
-  kind: z.enum(focusKinds),
+  kind: z.enum(sessionKinds),
   /** Moderate sessions: podcast, film, reading, … */
   tag: tag.optional(),
   /** Timers: the countdown length in minutes. The timer keeps running past it until stopped. */
   targetMin: z.number().int().min(1).max(1440).optional(),
+  /** A time habit's session: its time counts toward that habit. */
+  habitId: z.string().optional(),
 });
 export type FocusData = z.infer<typeof focusDataSchema>;
 

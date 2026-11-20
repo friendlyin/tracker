@@ -29,6 +29,13 @@
       "when": 1795116695069,
       "tag": "0003_best_reps_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795184991410,
+      "tag": "0004_habits",
+      "breakpoints": true
     }
   ]
 }

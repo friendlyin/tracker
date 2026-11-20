@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { focusState, isRunning } from "../../../shared/focus/model";
-import type { FocusKind } from "../../../shared/focus/schemas";
+import type { FocusKind, SessionKind } from "../../../shared/focus/schemas";
 import {
   applyFocusSettingsPatch,
   type FocusSettings,
@@ -67,20 +67,21 @@ function useFocusWrite<V>(
 }
 
 /** Like the server: stops running timers; one stopped within a minute is dropped. */
-const stopAll = (entries: FocusEntryDto[], at: number) =>
+export const stopAll = (entries: FocusEntryDto[], at: number) =>
   entries
     .filter((e) => !isRunning(e) || at - e.startedAt >= MIN)
     .map((e) => (isRunning(e) ? { ...e, endedAt: at } : e));
 
-const newEntry = (
+export const newEntry = (
   d: FocusInputsDto,
   v: {
     id: string;
-    kind: FocusKind;
+    kind: SessionKind;
     tag?: string;
     at: number;
     minutes: number | null;
     targetMin?: number;
+    habitId?: string;
   },
 ): FocusEntryDto => ({
   id: v.id,
@@ -90,6 +91,7 @@ const newEntry = (
   endedAt: null,
   minutes: v.minutes,
   targetMin: v.targetMin ?? null,
+  habitId: v.habitId ?? null,
   localDate: localDate(v.at, d.tz),
   source: "app",
 });

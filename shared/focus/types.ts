@@ -1,13 +1,13 @@
 import type { LevelPoint, LevelState } from "../level/engine";
 import type { DaySchedule } from "../schedule";
-import type { FocusKind } from "./schemas";
+import type { SessionKind } from "./schemas";
 import type { FocusSettings, SleepQuality } from "./settings";
 
 // Response shapes shared by the API, the PWA and the MCP tools.
 
 export interface FocusEntryDto {
   id: string;
-  kind: FocusKind;
+  kind: SessionKind;
   tag: string | null;
   /** Unix ms: when a timer started, or when minutes were added. */
   startedAt: number;
@@ -17,6 +17,8 @@ export interface FocusEntryDto {
   minutes: number | null;
   /** Timers: the countdown length in minutes; null counts up. */
   targetMin: number | null;
+  /** A time habit's session. */
+  habitId: string | null;
   localDate: string;
   source: "app" | "mcp";
 }
@@ -53,10 +55,11 @@ export interface FocusStateDto {
   state: LevelState;
   running: {
     id: string;
-    kind: FocusKind;
+    kind: SessionKind;
     tag: string | null;
     startedAt: number;
     targetMin: number | null;
+    habitId: string | null;
   } | null;
   /** The next state change if the current activity continues: the threshold crossed and when. */
   next: { state: LevelState; level: number; reachedAt: number } | null;

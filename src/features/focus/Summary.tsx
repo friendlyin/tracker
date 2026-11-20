@@ -1,4 +1,4 @@
-import type { FocusKind } from "../../../shared/focus/schemas";
+import type { SessionKind } from "../../../shared/focus/schemas";
 import type { FocusInputsDto, FocusStateDto } from "../../../shared/focus/types";
 import type { LevelState } from "../../../shared/level/engine";
 import { fmtDuration, fmtElapsed } from "../../lib/format";
@@ -11,10 +11,21 @@ import { ProgressBar } from "../../ui/ProgressBar";
 
 const MIN = 60_000;
 
-export const KIND_LABEL: Record<FocusKind, string> = {
+export const KIND_LABEL: Record<SessionKind, string> = {
   deep: "Deep",
   moderate: "Moderate",
   unfocus: "Unfocus",
+  other: "Other",
+};
+
+/** "Deep", "Moderate · podcast", or a time habit's name. */
+export const sessionLabel = (
+  e: { kind: SessionKind; tag: string | null; habitId: string | null },
+  habitNames: Map<string, string>,
+) => {
+  const habit = e.habitId ? habitNames.get(e.habitId) : undefined;
+  if (habit) return habit;
+  return e.tag ? `${KIND_LABEL[e.kind]} · ${e.tag}` : KIND_LABEL[e.kind];
 };
 
 export const energyTone = (state: LevelState) => (state === "ok" ? undefined : "text-warn");

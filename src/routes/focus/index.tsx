@@ -13,7 +13,8 @@ import {
   useStopFocus,
   useUpdateFocus,
 } from "../../features/focus/api";
-import { Elapsed, KIND_LABEL, Summary, Totals } from "../../features/focus/Summary";
+import { Elapsed, KIND_LABEL, Summary, sessionLabel, Totals } from "../../features/focus/Summary";
+import { useHabitNames } from "../../features/habits/api";
 import { TimerClock } from "../../features/timer/Countdown";
 import { LengthPicker, useTimerLength } from "../../features/timer/LengthPicker";
 import { primeAudio } from "../../features/timer/signal";
@@ -32,9 +33,6 @@ export const Route = createFileRoute("/focus/")({ component: FocusScreen });
 
 const MIN = 60_000;
 const kinds: FocusKind[] = ["deep", "moderate", "unfocus"];
-
-const label = (e: { kind: FocusKind; tag: string | null }) =>
-  e.tag ? `${KIND_LABEL[e.kind]} · ${e.tag}` : KIND_LABEL[e.kind];
 
 function SleepPicker({ st }: { st: FocusStateDto }) {
   const set = useSetSleep();
@@ -103,6 +101,7 @@ function Entries({
   effects: Map<string, number>;
   onEdit: (e: FocusEntryDto) => void;
 }) {
+  const names = useHabitNames();
   if (entries.length === 0) return null;
   return (
     <div className="mt-8">
@@ -118,7 +117,7 @@ function Entries({
               ? "+"
               : `${fmtTime(e.startedAt)}–${e.endedAt === null ? "" : fmtTime(e.endedAt)}`}
           </span>
-          <span className="flex-1 text-[17px]">{label(e)}</span>
+          <span className="flex-1 text-[17px]">{sessionLabel(e, names)}</span>
           <Effect value={effects.get(e.id)} />
           {e.minutes === null && e.endedAt === null ? (
             <Elapsed since={e.startedAt} className="text-[15px] text-ink-2" />
@@ -229,6 +228,7 @@ function EditForm({
 }) {
   const update = useUpdateFocus();
   const del = useDeleteFocus();
+  const names = useHabitNames();
   const length =
     entry.minutes ??
     (entry.endedAt === null ? null : Math.round((entry.endedAt - entry.startedAt) / MIN));
@@ -236,7 +236,7 @@ function EditForm({
   const [tag, setTag] = useState(entry.tag);
   return (
     <>
-      <div className="text-[17px] font-semibold">{KIND_LABEL[entry.kind]}</div>
+      <div className="text-[17px] font-semibold">{sessionLabel(entry, names)}</div>
       {entry.kind === "moderate" && tags.length > 0 && (
         <div className="mt-4">
           <TagPicker tags={tags} value={tag} onChange={setTag} />
@@ -332,13 +332,14 @@ function Actions({
   onStart: () => void;
   onAdd: () => void;
 }) {
+  const names = useHabitNames();
   const { stop } = useStopFocus();
   return (
     <div className="pb-3">
       {st.running && (
         <div className="mb-3 flex items-center gap-3">
           <div className="flex-1">
-            <div className="text-[13px] text-ink-2">{label(st.running)}</div>
+            <div className="text-[13px] text-ink-2">{sessionLabel(st.running, names)}</div>
             <TimerClock
               id={st.running.id}
               startedAt={st.running.startedAt}

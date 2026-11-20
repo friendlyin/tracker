@@ -4,6 +4,7 @@ import type { NutritionDayStatusDto } from "../../shared/nutrition/types";
 import type { HomeDto } from "../../shared/profile";
 import { useVariant } from "../dev/variants";
 import { FocusTile } from "../features/focus/HomeTile";
+import { HabitsTile } from "../features/habits/HomeTile";
 import { kcalLine, proteinLine } from "../features/nutrition/Summary";
 import { useHome } from "../features/profile";
 import { WaterTile } from "../features/water/HomeTile";
@@ -81,6 +82,7 @@ function widgets(home: HomeDto | undefined): Widget[] {
     },
     { key: "water", label: "Water", tile: WaterTile },
     { key: "focus", label: "Focus", tile: FocusTile },
+    { key: "habits", label: "Habits", tile: HabitsTile },
   ];
 }
 

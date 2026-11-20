@@ -3,6 +3,7 @@ import { focusDayStats, focusState, sleepValue } from "../../shared/focus/model"
 import type {
   FocusData,
   LogFocusInput,
+  SessionKind,
   SetSleepInput,
   SleepData,
   StartFocusInput,
@@ -49,7 +50,7 @@ const MIN = 60_000;
 /** A start this far in the future is a mistake (clock skew is allowed). */
 const FUTURE_MS = 5 * MIN;
 
-function toDto(r: EntryRow): FocusEntryDto {
+export function toDto(r: EntryRow): FocusEntryDto {
   const d = r.data as FocusData;
   return {
     id: r.id,
@@ -59,6 +60,7 @@ function toDto(r: EntryRow): FocusEntryDto {
     endedAt: r.endedAt,
     minutes: r.value,
     targetMin: d.targetMin ?? null,
+    habitId: d.habitId ?? null,
     localDate: r.localDate,
     source: r.source,
   };
@@ -95,7 +97,7 @@ export async function setFocusSettings(
 // ---------- inputs ----------
 
 /** Timers still running, whatever day they started on (added minutes have a value instead). */
-const runningRows = (db: Db, userId: string) =>
+export const runningRows = (db: Db, userId: string) =>
   db
     .select()
     .from(entry)
@@ -239,7 +241,11 @@ const focusData = (d: FocusData): FocusData => ({
   kind: d.kind,
   ...(d.tag ? { tag: d.tag } : {}),
   ...(d.targetMin ? { targetMin: d.targetMin } : {}),
+  ...(d.habitId ? { habitId: d.habitId } : {}),
 });
+
+/** A session from a time habit: any session kind, and the habit it counts toward. */
+type FromHabit = { kind: SessionKind; habitId?: string };
 
 async function existing(db: Db, userId: string, id: string | undefined) {
   const row = id ? await getEntry(db, userId, "focus", id) : null;
@@ -250,7 +256,7 @@ async function existing(db: Db, userId: string, id: string | undefined) {
 export async function logFocus(
   db: Db,
   u: DayUser,
-  input: LogFocusInput,
+  input: Omit<LogFocusInput, "kind"> & FromHabit,
   source: "app" | "mcp",
 ): Promise<FocusEntryDto> {
   const done = await existing(db, u.id, input.id);
@@ -262,7 +268,7 @@ export async function logFocus(
     id: input.id,
     occurredAt: at,
     value: input.minutes,
-    data: focusData({ kind: input.kind, tag: input.tag }),
+    data: focusData({ kind: input.kind, tag: input.tag, habitId: input.habitId }),
     source,
   });
   await afterWrite(db, u, row.localDate);
@@ -273,7 +279,7 @@ export async function logFocus(
 export async function startFocus(
   db: Db,
   u: DayUser,
-  input: StartFocusInput,
+  input: Omit<StartFocusInput, "kind"> & FromHabit,
   source: "app" | "mcp",
 ): Promise<FocusEntryDto> {
   const done = await existing(db, u.id, input.id);
@@ -287,7 +293,12 @@ export async function startFocus(
     occurredAt: start,
     endedAt: null,
     value: null,
-    data: focusData({ kind: input.kind, tag: input.tag, targetMin: input.minutes }),
+    data: focusData({
+      kind: input.kind,
+      tag: input.tag,
+      targetMin: input.minutes,
+      habitId: input.habitId,
+    }),
     source,
   });
   await afterWrite(db, u, row.localDate);

@@ -4,11 +4,12 @@ import type { FocusStateDto } from "../../../shared/focus/types";
 import { cx } from "../../ui/cx";
 import { PlayIcon, StopIcon } from "../../ui/icons";
 import { ProgressBar } from "../../ui/ProgressBar";
+import { useHabitNames } from "../habits/api";
 import { TimerClock } from "../timer/Countdown";
 import { timerLength } from "../timer/LengthPicker";
 import { primeAudio } from "../timer/signal";
 import { useFocusLog, useFocusState, useSetSleep, useStopFocus } from "./api";
-import { energyTone, KIND_LABEL } from "./Summary";
+import { energyTone, sessionLabel } from "./Summary";
 
 // Home tile: energy and state, and one tap to start deep focus or stop the running timer. Until the
 // day's sleep is set, three sleep buttons take that place. Buttons sit above the tile's link (a
@@ -28,10 +29,11 @@ function EnergyNumber({ st, size = 40 }: { st: FocusStateDto; size?: number }) {
 }
 
 function Running({ st }: { st: FocusStateDto }) {
+  const names = useHabitNames();
   if (!st.running) return <div className="h-4" />;
   return (
     <div className="h-4 text-[12px]">
-      {KIND_LABEL[st.running.kind]} ·{" "}
+      {sessionLabel(st.running, names)} ·{" "}
       <TimerClock
         id={st.running.id}
         startedAt={st.running.startedAt}

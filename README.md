@@ -7,7 +7,7 @@ photo, read your history and give you insights. The app itself contains no AI.
 Built for one person or a household: each person has their own account and sees only their own data.
 
 > **Status: early development.** Features are built in iterations (see [the plan](docs/requirements.md)).
-> Usable so far: workouts, nutrition, water and focus energy (✅), deployed on your own Cloudflare
+> Usable so far: workouts, nutrition, water, focus energy and habits (✅), deployed on your own Cloudflare
 > account with email-code login, logging that works offline, stats with an overview of everything,
 > and Claude (claude.ai, the Claude apps,
 > Claude Code) connected through MCP.
@@ -24,7 +24,8 @@ Built for one person or a household: each person has their own account and sees 
 | Stats ✅ | One engine for all charts: any period, per feature or everything on one screen; strength progress per exercise and muscle group. | 7 |
 | Offline logging ✅ | Log sets in a gym with no signal; the app syncs later. | 8 |
 | WHOOP | Sleep, recovery and workouts from your WHOOP. | 9 |
-| Habits, mood | Habits such as morning sunlight, plus mood check-ins. | 10–11 |
+| Habits ✅ | Your own habits on chosen weekdays: a check, minutes (with a countdown timer that can count as focus), a count or an amount. | 10 |
+| Mood | Mood check-ins. | 11 |
 
 ## How it works
 

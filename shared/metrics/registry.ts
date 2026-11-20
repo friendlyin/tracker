@@ -11,7 +11,7 @@ export interface MetricDef {
   /** How daily values combine into weeks/months. */
   aggregation: Aggregation;
   better: "higher" | "lower" | "none";
-  dimension?: "muscle_group" | "exercise" | "tag";
+  dimension?: "muscle_group" | "exercise" | "tag" | "habit";
   /**
    * What a day without a row means: `zero` (nothing drunk, no workout) or `unknown` (nothing logged,
    * e.g. meals). Daily averages count every elapsed day for `zero`, only days with a row for `unknown`.
@@ -219,6 +219,26 @@ export const METRICS = {
     unit: "points",
     aggregation: "avg",
     better: "higher",
+    empty: "unknown",
+  },
+  /** Check (1), count and amount habits: the day's amount per habit (dimension: habit id). */
+  habitAmount: {
+    id: "habit.amount",
+    label: "Habit amount",
+    unit: "count",
+    aggregation: "sum",
+    better: "higher",
+    dimension: "habit",
+    empty: "unknown",
+  },
+  /** Time habits: stopped sessions and added minutes per habit (dimension: habit id). */
+  habitMinutes: {
+    id: "habit.minutes",
+    label: "Habit minutes",
+    unit: "min",
+    aggregation: "sum",
+    better: "higher",
+    dimension: "habit",
     empty: "unknown",
   },
 } as const satisfies Record<string, MetricDef>;

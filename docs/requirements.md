@@ -22,7 +22,7 @@ first. Then deploy to Cloudflare and connect Claude, then stats, offline, WHOOP,
 | 7 | Stats engine and Overview | ✅ |
 | 8 | Offline-proof logging | ✅ |
 | 9 | WHOOP | |
-| 10 | Habits | |
+| 10 | Habits | ✅ |
 | 11 | Mood and emotions | |
 
 Until iteration 6 everything runs locally (`pnpm dev`, local D1, dev user). The phone can open the dev
@@ -59,7 +59,9 @@ it. Engines are not built up front without a user.
 
 One model for "things the user logs".
 - **Tracker:** a definition with key, kind, unit, settings and targets. System trackers include water,
-  meal, focus session, unfocus, sleep quality and habits. User-defined trackers come later.
+  meal, focus session, unfocus, sleep quality and habits. Habits are user-defined items of the
+  system `habit` tracker (their definitions are in a `habit` table); fully user-defined trackers come
+  later.
 - **Entry:** one logged event, stored the same way for every tracker: tracker, time (UTC + timezone +
   local date), value, duration or start/end, tags, note, data (JSON for tracker-specific fields such as
   meal macros), source (app / mcp / whoop).
@@ -695,11 +697,59 @@ plus webhooks. Uses:
 
 WHOOP data is exposed through our MCP for cross-feature insights.
 
-## Iteration 10: Habits
+## Iteration 10: Habits ✅
 
-Built on the tracking engine as check-type trackers: morning sun exposure, going to sleep early, etc.
-One-tap check-off, streaks and weekly completion in the stats engine. Sleep timing can be checked against
-WHOOP sleep. MCP via the generic entry tools.
+Custom habits the user adds and tracks, each due on chosen weekdays (or every day).
+
+**Habit kinds**
+- **check:** done or not;
+- **time:** a target in minutes, logged by hand or with a timer that counts down from the time left
+  (the shared countdown timer);
+- **count:** a target number of repetitions;
+- **amount:** a target with the user's own unit (km, pages, ml, …).
+
+A time habit can count for focus energy as deep, moderate or unfocus, or not at all. The starter habit
+every user gets once is a daily 10-minute meditation, counted as moderate focus.
+
+**Screens**
+- Habits (`/habits`):
+  - today's left count;
+  - one row per habit: progress against the target, this week's dots (done, missed, still due, blank
+    when not scheduled or before the habit existed);
+  - one action per kind: check, +1, + (amount sheet), or play/stop and + minutes for time habits;
+  - done habits sink and dim; habits not due today come last and can still be logged;
+  - tapping a row shows today's entries, which can be deleted;
+  - a running habit timer shows in the footer.
+- Settings (`/habits/settings`): add, edit (name, kind, target, unit, focus, days), remove, reorder.
+- Home tile: habits left today.
+  - Variants to pick on the phone (`habits.tile`): **count** (the number with a bar) or **list**
+    (the next habits with one-tap check and +1).
+
+**MCP**
+
+| MCP tool | Service function |
+|---|---|
+| `list_habits` | `listHabits` |
+| `get_habits_day(date?)` | `getHabitsDay` + `dayStatus` |
+| `create_habit` / `update_habit` / `archive_habit` | `createHabit` / `updateHabit` / `archiveHabit` |
+| `log_habit` | `logHabit` |
+| `delete_habit_entry` | `deleteHabitEntry` |
+| `start_habit_timer` | `startHabitTimer` (stopped with `stop_focus`) |
+
+Claude sees weekdays as numbers (1 = Monday … 7 = Sunday); the table stores a bitmask.
+
+**Implementation notes**
+- Definitions: the `habit` table (migration 0004). Archiving hides a habit and keeps its history.
+- Check, count and amount progress: entries of the `habit` tracker, `data.habitId`, `value` = the
+  amount (1 for a check). Rollup: `habit.amount` per habit (dimension: habit id).
+- Time progress: focus sessions with `data.habitId` and the habit's focus kind, or the kind `other`
+  (normal awake drain, not counted as focus). So a habit timer is the one running timer, drains energy
+  like its kind, counts down, and shows by name in the focus list. Rollup: `habit.minutes` per habit,
+  written by the focus tracker.
+- The week's dots come from those rollups; today's progress from the entries, so a running timer
+  counts live.
+- The starter habit is added on the first habits read, guarded by the `habits.seeded` setting.
+- Not built yet: streaks and habit charts in the stats screens.
 
 ## Iteration 11: Mood and emotions
 
@@ -766,3 +816,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Stats: hand-written SVG charts (no library); calendar periods paged back and forward; one aggregated query per stats request; strength progress as the trend of the best e1RM per session. |
 | 2026-11-20 | Weekly set targets are set per muscle group instead of per major/minor category (calves need far fewer sets than any category). Settings stored per category convert to per-group targets with the same numbers; calves start at 3. |
 | 2026-11-20 | A focus session's energy shows the total change while it ran (baseline drain included), not the extra over resting, so it matches the bar. |
+| 2026-11-20 | Habits are user-defined items of one system tracker (a `habit` table for definitions). A time habit's progress is stored as focus sessions with the habit's id (kind `other` when it doesn't count as focus), so energy, the one running timer and the countdown are shared. The starter habit, a daily 10-minute meditation, counts as moderate focus. |
