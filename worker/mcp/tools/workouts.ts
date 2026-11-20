@@ -57,6 +57,7 @@ export function registerWorkoutTools(server: McpServer, ctx: McpCtx) {
           ...g,
           done: displaySets(g.done),
           doneToday: displaySets(g.doneToday),
+          trainedToday: displaySets(g.trainedToday),
         })),
       };
     },

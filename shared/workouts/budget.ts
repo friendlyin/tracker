@@ -37,8 +37,10 @@ export interface GroupPlan {
   target: number;
   /** Working sets this week, including today. */
   done: number;
-  /** Working sets in today's workouts. */
+  /** Working sets in today's workouts that still count for today's plan (0 once today is over). */
   doneToday: number;
+  /** Working sets trained today, in active and finished workouts. */
+  trainedToday: number;
   remaining: number;
   /** Sets planned for today, computed from the state before today's workouts. */
   todayTarget: number;
@@ -86,6 +88,7 @@ export function planWeek(input: PlanWeekInput): WeekPlan {
     const target = settings.targets[group];
     const done = volume[group];
     const doneToday = volumeToday[group];
+    const trainedToday = input.volumeToday[group];
     const remaining = Math.max(0, target - done);
     const remainingBeforeToday = Math.max(0, target - (done - doneToday));
     const todayTarget = Math.ceil(remainingBeforeToday / remainingWorkouts - 1e-9);
@@ -94,7 +97,17 @@ export function planWeek(input: PlanWeekInput): WeekPlan {
     const normalSession = target / perWeek;
     const status: GroupStatus =
       remaining <= 0 ? "done" : todayTarget > normalSession * 1.5 ? "at_risk" : "ok";
-    return { group, target, done, doneToday, remaining, todayTarget, leftToday, status };
+    return {
+      group,
+      target,
+      done,
+      doneToday,
+      trainedToday,
+      remaining,
+      todayTarget,
+      leftToday,
+      status,
+    };
   });
 
   const order = (g: GroupPlan) => MUSCLE_GROUPS.indexOf(g.group);

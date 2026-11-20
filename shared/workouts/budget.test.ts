@@ -114,6 +114,7 @@ describe("planWeek", () => {
     expect(plan.groups.find((g) => g.group === "chest")).toMatchObject({
       todayTarget: 4,
       doneToday: 0,
+      trainedToday: 4,
       leftToday: 4,
     });
   });

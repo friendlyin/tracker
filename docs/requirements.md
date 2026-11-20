@@ -248,6 +248,10 @@ implemented as service functions in `worker/services/workouts.ts`; since iterati
   it stays stable while logging. A group is at risk when that exceeds 1.5× a normal session
   (target ÷ workouts per week).
 - Order: groups with sets left today first, then by remaining sets; completed groups last.
+- Groups trained today (at least one working set today, in an active or finished workout) are marked
+  in the budget grid with today's sets (`trainedToday` in the plan and in `get_weekly_volume`).
+  Variants to pick on the phone (`workouts.today`): a dot before the label, an outline around the
+  cell, or today's share as a dark segment of the progress bar.
 - Group screen: primary exercises (contribution 1.0) first, then secondary ones; each list is most-used
   first (working sets in the last 8 weeks, then all time).
 - Logging prefill: follows last session's set at the same position, carries today's values after a
