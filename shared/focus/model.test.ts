@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { localDate } from "../time";
-import { focusDayStats, focusState } from "./model";
+import { entryEffects, focusDayStats, focusState } from "./model";
 import type { FocusKind } from "./schemas";
 import { parseFocusSettings, type SleepQuality } from "./settings";
 import type { FocusInputsDto } from "./types";
@@ -161,5 +161,50 @@ describe("focus model", () => {
     const r = focusState(rest, at("2026-11-18T08:00:00Z"));
     expect(r.energy).toBe(Math.round((47.5 + 25) * Math.exp(0.16) - 25 + 1));
     expect(r.unfocusMin).toBe(20);
+  });
+
+  it("gives each entry's total energy change, matching the bar", () => {
+    const i = inputs(example, good);
+    const now = at("2026-11-18T16:20:00Z");
+    const fx = entryEffects(i, now);
+    const e = (iso: string) => focusState(i, at(iso)).energy;
+    // 3 h deep at 12/h; unfocus 14:00–14:20 restores 34 → 44.
+    expect(fx.get("0")).toBeCloseTo(-36, 5);
+    expect(Math.round(fx.get("2") ?? 0)).toBe(
+      e("2026-11-18T14:20:00Z") - e("2026-11-18T14:00:00Z"),
+    );
+    expect(Math.round(fx.get("3") ?? 0)).toBe(-12);
+  });
+
+  it("counts a running timer up to now", () => {
+    const i = inputs([["deep", "2026-11-18T08:00:00Z", null]], good);
+    expect(entryEffects(i, at("2026-11-18T08:30:00Z")).get("0")).toBeCloseTo(-6, 5);
+  });
+
+  it("gives added minutes the same total as a timer", () => {
+    const i = inputs([], good);
+    const lump = (kind: FocusKind, minutes: number, iso: string, id: string) => ({
+      id,
+      kind,
+      tag: null,
+      startedAt: at(iso),
+      endedAt: null,
+      minutes,
+      localDate: "2026-11-18",
+      source: "app" as const,
+    });
+    i.entries = [
+      lump("deep", 30, "2026-11-18T10:00:00Z", "d"),
+      lump("unfocus", 20, "2026-11-18T08:00:00Z", "u"),
+    ];
+    const fx = entryEffects(i, at("2026-11-18T12:00:00Z"));
+    expect(fx.get("d")).toBeCloseTo(-6, 5);
+    // At 08:00 energy is 97 of 100: the restore is capped at the ceiling.
+    expect(fx.get("u")).toBeCloseTo(3, 0);
+  });
+
+  it("shows no change for unfocus at full energy", () => {
+    const i = inputs([["unfocus", "2026-11-18T07:00:00Z", "2026-11-18T07:20:00Z"]], good);
+    expect(entryEffects(i, at("2026-11-18T08:00:00Z")).get("0")).toBeCloseTo(0, 5);
   });
 });

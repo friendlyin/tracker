@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { entryEffects } from "../../../shared/focus/model";
 import {
   logFocusInput,
   setSleepInput,
@@ -79,16 +80,27 @@ export function registerFocusTools(server: McpServer, ctx: McpCtx) {
 
   tool(server, ctx, "list_focus", {
     description:
-      "Focus sessions (deep, moderate, unfocus) and sleep quality: timers have startedAt and endedAt (null while running); minutes added afterwards have minutes, and startedAt is when they were added. For one local date (default today) or a date range (from/to, YYYY-MM-DD).",
+      "Focus sessions (deep, moderate, unfocus) and sleep quality: timers have startedAt and endedAt (null while running); minutes added afterwards have minutes, and startedAt is when they were added. Entries of the current focus day also have energy: how much the session moved focus energy (negative = drained). For one local date (default today) or a date range (from/to, YYYY-MM-DD).",
     input: z.object({
       date: localDateSchema.optional(),
       from: localDateSchema.optional(),
       to: localDateSchema.optional(),
     }),
     readOnly: true,
-    run: ({ date, from, to }) => {
+    run: async ({ date, from, to }) => {
       const d = date ?? today(ctx);
-      return svc.listFocus(db, userId, { from: from ?? d, to: to ?? from ?? d });
+      const [list, inputs] = await Promise.all([
+        svc.listFocus(db, userId, { from: from ?? d, to: to ?? from ?? d }),
+        svc.getFocusInputs(db, u),
+      ]);
+      const fx = entryEffects(inputs, Date.now());
+      return {
+        ...list,
+        entries: list.entries.map((e) => {
+          const energy = fx.get(e.id);
+          return energy === undefined ? e : { ...e, energy: Math.round(energy) };
+        }),
+      };
     },
   });
 

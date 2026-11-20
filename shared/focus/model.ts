@@ -6,7 +6,9 @@ import {
   firstReach,
   type LevelClock,
   type LevelModel,
+  type LevelPoint,
   type LevelSpan,
+  levelAt,
   minLevel,
   pointsFrom,
   type Simulation,
@@ -221,6 +223,42 @@ export function focusState(inputs: FocusInputsDto, now: number): FocusStateDto {
     unfocusMin: sum("unfocus"),
     points: pointsFrom(sim.points, day.start),
   };
+}
+
+/** The level just before and just after the step at `t` (the same when there is none). */
+function stepAt(points: readonly LevelPoint[], t: number): [number, number] {
+  const at = points.filter((p) => p.t === t);
+  const first = at[0];
+  const last = at[at.length - 1];
+  if (!first || !last) return [levelAt(points, t), levelAt(points, t)];
+  return [first.level, last.level];
+}
+
+/**
+ * How much each of the current day's entries moved energy: the total change while it ran, including
+ * the normal awake drain, so it matches the bar. A timer: the level at its end (or `now`) minus the
+ * level at its start. Added minutes apply at once as the drain beyond the baseline (or the restore
+ * plus the paused baseline), so the baseline for that time is added back to give the same total.
+ */
+export function entryEffects(inputs: FocusInputsDto, now: number): Map<string, number> {
+  const day = focusDay(inputs, now);
+  const { points } = simulateDay(inputs, day, now);
+  const baseline = inputs.settings.drain.baseline;
+  const effects = new Map<string, number>();
+  for (const e of inputs.entries) {
+    if (e.startedAt < day.start || e.startedAt > now) continue;
+    if (e.minutes === null) {
+      const end = Math.min(e.endedAt ?? now, now);
+      effects.set(e.id, levelAt(points, end) - levelAt(points, e.startedAt));
+    } else {
+      const [before, after] = stepAt(points, e.startedAt);
+      const step = after - before;
+      // Capped at the ceiling: the step is what the bar shows, as for a timer that reaches it.
+      const capped = e.kind === "unfocus" && after >= day.ceiling - 1e-9;
+      effects.set(e.id, capped ? step : step - (baseline * e.minutes) / 60);
+    }
+  }
+  return effects;
 }
 
 export interface FocusDayStats {

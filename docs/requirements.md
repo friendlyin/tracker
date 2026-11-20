@@ -519,6 +519,10 @@ Web Push reminders (for focus and water) are in the backlog.
 - The simulation is `shared/focus/model.ts`. Like water, the API returns its inputs, and the PWA runs
   it again every minute (every 15 s while a timer runs) and after optimistic writes.
 - Running timers are always loaded, whatever day they started on.
+- Each session in today's list shows how much it moved energy (`entryEffects`), also returned by
+  `list_focus` as `energy`. It is the total change while it ran, including the normal awake drain,
+  so it matches the bar (90 min deep: −18). Added minutes, which apply at once, get the same total
+  as a timer of that length.
 - The closed-day stats are finalised through the shared `levels.ts`. The last finalised date is in
   `user_setting` key `focus.finalized`.
 - Design variants chosen (2026-11-19):
@@ -737,3 +741,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-19 | Calves added as a minor muscle group. Library exercises added in later releases reach existing users: the exercise list inserts seed exercises whose key the user has none of. Each muscle group's category has its own default, so stored settings stay valid when a group is added. |
 | 2026-11-19 | Stats: hand-written SVG charts (no library); calendar periods paged back and forward; one aggregated query per stats request; strength progress as the trend of the best e1RM per session. |
 | 2026-11-20 | Weekly set targets are set per muscle group instead of per major/minor category (calves need far fewer sets than any category). Settings stored per category convert to per-group targets with the same numbers; calves start at 3. |
+| 2026-11-20 | A focus session's energy shows the total change while it ran (baseline drain included), not the extra over resting, so it matches the bar. |

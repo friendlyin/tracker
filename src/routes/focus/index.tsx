@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { entryEffects } from "../../../shared/focus/model";
 import type { FocusKind } from "../../../shared/focus/schemas";
 import { SLEEP_LABEL, type SleepQuality, sleepQualities } from "../../../shared/focus/settings";
 import type { FocusEntryDto, FocusStateDto } from "../../../shared/focus/types";
@@ -79,11 +80,24 @@ function TagPicker({
   );
 }
 
+/** Signed energy change, e.g. −18 or +12. */
+function Effect({ value }: { value: number | undefined }) {
+  if (value === undefined) return null;
+  const n = Math.round(value);
+  return (
+    <span className={cx("num w-10 text-right text-[15px]", n > 0 ? "text-ok" : "text-ink-3")}>
+      {n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0"}
+    </span>
+  );
+}
+
 function Entries({
   entries,
+  effects,
   onEdit,
 }: {
   entries: FocusEntryDto[];
+  effects: Map<string, number>;
   onEdit: (e: FocusEntryDto) => void;
 }) {
   if (entries.length === 0) return null;
@@ -102,6 +116,7 @@ function Entries({
               : `${fmtTime(e.startedAt)}–${e.endedAt === null ? "" : fmtTime(e.endedAt)}`}
           </span>
           <span className="flex-1 text-[17px]">{label(e)}</span>
+          <Effect value={effects.get(e.id)} />
           {e.minutes === null && e.endedAt === null ? (
             <Elapsed since={e.startedAt} className="text-[15px] text-ink-2" />
           ) : (
@@ -365,6 +380,9 @@ function FocusScreen() {
   const [starting, setStarting] = useState(false);
   const [editing, setEditing] = useState<FocusEntryDto | null>(null);
   const tags = d?.settings.tags ?? [];
+  // Re-computed with each state tick, so a running timer's change grows.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: st is the tick
+  const effects = useMemo(() => (d ? entryEffects(d, Date.now()) : new Map()), [d, st]);
   const today =
     st && d
       ? d.entries
@@ -401,7 +419,7 @@ function FocusScreen() {
           <div className="mt-8">
             <Totals st={st} />
           </div>
-          <Entries entries={today} onEdit={setEditing} />
+          <Entries entries={today} effects={effects} onEdit={setEditing} />
         </>
       )}
       {/* Outside the sticky footer, which would trap the sheets under the header. */}
