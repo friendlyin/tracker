@@ -4,8 +4,11 @@ import type { FocusStateDto } from "../../../shared/focus/types";
 import { cx } from "../../ui/cx";
 import { PlayIcon, StopIcon } from "../../ui/icons";
 import { ProgressBar } from "../../ui/ProgressBar";
+import { TimerClock } from "../timer/Countdown";
+import { timerLength } from "../timer/LengthPicker";
+import { primeAudio } from "../timer/signal";
 import { useFocusLog, useFocusState, useSetSleep, useStopFocus } from "./api";
-import { Elapsed, energyTone, KIND_LABEL } from "./Summary";
+import { energyTone, KIND_LABEL } from "./Summary";
 
 // Home tile: energy and state, and one tap to start deep focus or stop the running timer. Until the
 // day's sleep is set, three sleep buttons take that place. Buttons sit above the tile's link (a
@@ -28,7 +31,12 @@ function Running({ st }: { st: FocusStateDto }) {
   if (!st.running) return <div className="h-4" />;
   return (
     <div className="h-4 text-[12px]">
-      {KIND_LABEL[st.running.kind]} · <Elapsed since={st.running.startedAt} />
+      {KIND_LABEL[st.running.kind]} ·{" "}
+      <TimerClock
+        id={st.running.id}
+        startedAt={st.running.startedAt}
+        targetMin={st.running.targetMin}
+      />
     </div>
   );
 }
@@ -96,7 +104,11 @@ export function FocusTile({ className }: { className: string }) {
           <button
             type="button"
             aria-label={st.running ? "Stop timer" : "Start deep focus"}
-            onClick={() => (st.running ? stop() : log.start("deep"))}
+            onClick={() => {
+              if (st.running) return stop();
+              primeAudio();
+              log.start("deep", undefined, timerLength("focus.length") ?? undefined);
+            }}
             className="pointer-events-auto relative -mt-2 -mr-2 grid size-11 place-items-center rounded-md bg-paper text-ink active:opacity-60"
           >
             {st.running ? <StopIcon className="size-5" /> : <PlayIcon className="size-5" />}

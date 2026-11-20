@@ -15,6 +15,8 @@ export const focusDataSchema = z.object({
   kind: z.enum(focusKinds),
   /** Moderate sessions: podcast, film, reading, … */
   tag: tag.optional(),
+  /** Timers: the countdown length in minutes. The timer keeps running past it until stopped. */
+  targetMin: z.number().int().min(1).max(1440).optional(),
 });
 export type FocusData = z.infer<typeof focusDataSchema>;
 
@@ -45,15 +47,21 @@ export const startFocusInput = z.object({
   id: z.uuid().optional(),
   kind: z.enum(focusKinds),
   tag: tag.optional(),
+  /** Count down from this many minutes; signals at zero but keeps running until stopped. */
+  minutes: minutes.optional(),
   /** Start, ISO 8601 with offset; default now. */
   time: isoTime.optional(),
 });
 export type StartFocusInput = z.infer<typeof startFocusInput>;
 
-/** `minutes` sets the length (and stops a running timer); `tag: null` removes the tag. */
+/**
+ * `minutes` sets the length (and stops a running timer); `tag: null` removes the tag; `targetMin`
+ * changes a timer's countdown (null: count up).
+ */
 export const updateFocusInput = z.object({
   minutes: minutes.optional(),
   tag: tag.nullable().optional(),
+  targetMin: minutes.nullable().optional(),
 });
 export type UpdateFocusInput = z.infer<typeof updateFocusInput>;
 

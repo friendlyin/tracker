@@ -14,6 +14,9 @@ import {
   useUpdateFocus,
 } from "../../features/focus/api";
 import { Elapsed, KIND_LABEL, Summary, Totals } from "../../features/focus/Summary";
+import { TimerClock } from "../../features/timer/Countdown";
+import { LengthPicker, useTimerLength } from "../../features/timer/LengthPicker";
+import { primeAudio } from "../../features/timer/signal";
 import { fmtDuration, fmtTime } from "../../lib/format";
 import { Button } from "../../ui/Button";
 import { cx } from "../../ui/cx";
@@ -281,15 +284,18 @@ function StartSheet({
   tags: string[];
 }) {
   const log = useFocusLog();
+  const [length, setLength] = useTimerLength("focus.length");
   const start = (k: FocusKind, tag?: string) => {
-    log.start(k, tag);
+    primeAudio();
+    log.start(k, tag, length ?? undefined);
     onClose();
   };
   const row =
     "flex h-14 w-full items-center gap-3 rounded-md bg-surface px-4 text-[17px] font-semibold active:opacity-60";
   return (
     <Sheet open={open} onClose={onClose}>
-      <div className="space-y-2 pb-2">
+      <LengthPicker value={length} onChange={setLength} />
+      <div className="mt-4 space-y-2 pb-2">
         {kinds.map((k) => (
           <div key={k}>
             <button type="button" className={row} onClick={() => start(k)}>
@@ -333,8 +339,10 @@ function Actions({
         <div className="mb-3 flex items-center gap-3">
           <div className="flex-1">
             <div className="text-[13px] text-ink-2">{label(st.running)}</div>
-            <Elapsed
-              since={st.running.startedAt}
+            <TimerClock
+              id={st.running.id}
+              startedAt={st.running.startedAt}
+              targetMin={st.running.targetMin}
               className="text-[28px] leading-none font-semibold"
             />
           </div>

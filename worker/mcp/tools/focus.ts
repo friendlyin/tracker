@@ -51,7 +51,7 @@ export function registerFocusTools(server: McpServer, ctx: McpCtx) {
 
   tool(server, ctx, "start_focus", {
     description:
-      "Start a timer: kind deep, moderate (with a tag) or unfocus. Only one timer runs at a time; starting one stops the running one. time is the start (default now).",
+      "Start a timer: kind deep, moderate (with a tag) or unfocus. minutes makes it count down: the app signals at zero (a push notification if enabled) but the timer keeps running until stopped. Only one timer runs at a time; starting one stops the running one. time is the start (default now).",
     input: startFocusInput,
     run: async (input) => ({
       entry: await svc.startFocus(db, u, input, "mcp"),
@@ -106,7 +106,7 @@ export function registerFocusTools(server: McpServer, ctx: McpCtx) {
 
   tool(server, ctx, "update_focus_entry", {
     description:
-      "Fix a session: minutes sets its length (and stops a running timer), tag null removes the tag.",
+      "Fix a session: minutes sets its length (and stops a running timer), tag null removes the tag, targetMin changes a running timer's countdown (null: count up).",
     input: updateFocusInput.extend({ id: z.uuid() }),
     run: async ({ id, ...patch }) => ({
       entry: await svc.updateFocus(db, u, id, patch),

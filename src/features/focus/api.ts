@@ -74,7 +74,14 @@ const stopAll = (entries: FocusEntryDto[], at: number) =>
 
 const newEntry = (
   d: FocusInputsDto,
-  v: { id: string; kind: FocusKind; tag?: string; at: number; minutes: number | null },
+  v: {
+    id: string;
+    kind: FocusKind;
+    tag?: string;
+    at: number;
+    minutes: number | null;
+    targetMin?: number;
+  },
 ): FocusEntryDto => ({
   id: v.id,
   kind: v.kind,
@@ -82,12 +89,13 @@ const newEntry = (
   startedAt: v.at,
   endedAt: null,
   minutes: v.minutes,
+  targetMin: v.targetMin ?? null,
   localDate: localDate(v.at, d.tz),
   source: "app",
 });
 
 type Added = { id: string; kind: FocusKind; tag?: string; minutes: number; at: number };
-type Started = { id: string; kind: FocusKind; tag?: string; at: number };
+type Started = { id: string; kind: FocusKind; tag?: string; targetMin?: number; at: number };
 
 /** `add` logs minutes done earlier (they apply now); `start` starts a timer. Both return the id. */
 export function useFocusLog() {
@@ -101,7 +109,7 @@ export function useFocusLog() {
   const start = useFocusWrite(
     (v: Started) =>
       queueWrite("/focus/start", {
-        body: { id: v.id, kind: v.kind, tag: v.tag, time: iso(v.at) },
+        body: { id: v.id, kind: v.kind, tag: v.tag, minutes: v.targetMin, time: iso(v.at) },
       }),
     (d, v) => ({
       ...d,
@@ -114,9 +122,10 @@ export function useFocusLog() {
       add.mutate({ id, kind, tag, minutes, at: Date.now() });
       return id;
     },
-    start: (kind: FocusKind, tag?: string) => {
+    /** `targetMin` counts down from that many minutes; the timer keeps running past zero. */
+    start: (kind: FocusKind, tag?: string, targetMin?: number) => {
       const id = uuidv7();
-      start.mutate({ id, kind, tag, at: Date.now() });
+      start.mutate({ id, kind, tag, targetMin, at: Date.now() });
       return id;
     },
   };

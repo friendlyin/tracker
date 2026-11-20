@@ -15,6 +15,8 @@ export interface FocusEntryDto {
   endedAt: number | null;
   /** Minutes added afterwards (applied when added, no time of day); null for timers. */
   minutes: number | null;
+  /** Timers: the countdown length in minutes; null counts up. */
+  targetMin: number | null;
   localDate: string;
   source: "app" | "mcp";
 }
@@ -49,7 +51,13 @@ export interface FocusStateDto {
   /** Null until set for the day (the default sleep is assumed). */
   sleep: SleepQuality | null;
   state: LevelState;
-  running: { id: string; kind: FocusKind; tag: string | null; startedAt: number } | null;
+  running: {
+    id: string;
+    kind: FocusKind;
+    tag: string | null;
+    startedAt: number;
+    targetMin: number | null;
+  } | null;
   /** The next state change if the current activity continues: the threshold crossed and when. */
   next: { state: LevelState; level: number; reachedAt: number } | null;
   deepMin: number;

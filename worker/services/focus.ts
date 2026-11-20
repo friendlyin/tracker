@@ -2,7 +2,6 @@ import { and, eq, isNull } from "drizzle-orm";
 import { focusDayStats, focusState, sleepValue } from "../../shared/focus/model";
 import type {
   FocusData,
-  FocusKind,
   LogFocusInput,
   SetSleepInput,
   SleepData,
@@ -59,6 +58,7 @@ function toDto(r: EntryRow): FocusEntryDto {
     startedAt: r.occurredAt,
     endedAt: r.endedAt,
     minutes: r.value,
+    targetMin: d.targetMin ?? null,
     localDate: r.localDate,
     source: r.source,
   };
@@ -234,9 +234,11 @@ export async function stopFocus(
   return out;
 }
 
-const focusData = (kind: FocusKind, tag: string | undefined): FocusData => ({
-  kind,
-  ...(tag ? { tag } : {}),
+/** `entry.data` without empty fields. */
+const focusData = (d: FocusData): FocusData => ({
+  kind: d.kind,
+  ...(d.tag ? { tag: d.tag } : {}),
+  ...(d.targetMin ? { targetMin: d.targetMin } : {}),
 });
 
 async function existing(db: Db, userId: string, id: string | undefined) {
@@ -260,7 +262,7 @@ export async function logFocus(
     id: input.id,
     occurredAt: at,
     value: input.minutes,
-    data: focusData(input.kind, input.tag),
+    data: focusData({ kind: input.kind, tag: input.tag }),
     source,
   });
   await afterWrite(db, u, row.localDate);
@@ -285,7 +287,7 @@ export async function startFocus(
     occurredAt: start,
     endedAt: null,
     value: null,
-    data: focusData(input.kind, input.tag),
+    data: focusData({ kind: input.kind, tag: input.tag, targetMin: input.minutes }),
     source,
   });
   await afterWrite(db, u, row.localDate);
@@ -294,7 +296,7 @@ export async function startFocus(
 
 /**
  * `minutes` changes added minutes, or sets a timer's length (stopping it if it runs). `tag: null`
- * removes the tag.
+ * removes the tag; `targetMin` changes the countdown (null: count up).
  */
 export async function updateFocus(
   db: Db,
@@ -306,6 +308,8 @@ export async function updateFocus(
   if (!current) throw new NotFoundError("focus entry");
   const d = current.data as FocusData;
   const tag = patch.tag === undefined ? d.tag : (patch.tag ?? undefined);
+  const targetMin =
+    patch.targetMin === undefined ? d.targetMin : (patch.targetMin ?? undefined);
   const added = current.value !== null;
   const row = await updateEntry(db, u.id, u.tz, "focus", id, {
     ...(patch.minutes === undefined
@@ -313,7 +317,7 @@ export async function updateFocus(
       : added
         ? { value: patch.minutes }
         : { endedAt: current.occurredAt + patch.minutes * MIN }),
-    data: focusData(d.kind, tag),
+    data: focusData({ ...d, tag, targetMin }),
   });
   await afterWrite(db, u, row.localDate);
   return toDto(row);

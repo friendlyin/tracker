@@ -660,6 +660,30 @@ conflicts thanks to client-generated IDs. Includes a sync-state indicator.
     comes to the front (`src/lib/pwa.ts`).
   - A chunk that still fails to load triggers one reload.
 
+## Timers and notifications
+
+Countdown timers for focus sessions (and, from iteration 10, time habits), and push notifications
+on the phone.
+
+**Countdown timers ✅**
+- Starting a timer can set a length: ∞ (count up, the default), 25, 45, 60, 90 or a custom number of
+  minutes. The last choice is remembered on the device and also used by the home tile's start.
+- The footer and the home tile count down. Past zero they show the overtime (`+3:05`) in the
+  warning colour and keep counting: only Stop ends the session.
+- At zero the app chimes (Web Audio) and vibrates where the browser can (not iOS), once per timer and
+  only while the app is visible. iOS mutes the chime when the phone is on silent.
+- With the phone locked or the app in the background, the signal is the push notification (below).
+- Stored as `targetMin` in the focus entry's `data`. `start_focus` takes `minutes`;
+  `update_focus_entry` takes `targetMin`.
+
+**iOS limits** (web apps, not native)
+- No live, counting timer in notifications or on the lock screen: Live Activities and ongoing
+  notifications are native-only. A notification arrives when the countdown ends instead.
+- No vibration API. The end notification's sound and haptic come from iOS.
+- No scheduled local notifications: every reminder is a Web Push sent by the server.
+- Push works only in the app added to the Home Screen (iOS 16.4+), and each device enables it from a
+  tap.
+
 ## Iteration 9: WHOOP integration
 
 Each user connects their own WHOOP via OAuth. Sync recovery, sleep, strain/cycles and workouts via cron

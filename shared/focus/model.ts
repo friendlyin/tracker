@@ -214,7 +214,13 @@ export function focusState(inputs: FocusInputsDto, now: number): FocusStateDto {
     sleep: day.sleep,
     state: classify(sim.points, stateRules(inputs.settings)),
     running: running
-      ? { id: running.id, kind: running.kind, tag: running.tag, startedAt: running.startedAt }
+      ? {
+          id: running.id,
+          kind: running.kind,
+          tag: running.tag,
+          startedAt: running.startedAt,
+          targetMin: running.targetMin,
+        }
       : null,
     next: forecast(inputs, day, sim.level, now, running),
     deepMin: sum("deep"),
