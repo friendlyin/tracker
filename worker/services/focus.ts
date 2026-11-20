@@ -308,8 +308,7 @@ export async function updateFocus(
   if (!current) throw new NotFoundError("focus entry");
   const d = current.data as FocusData;
   const tag = patch.tag === undefined ? d.tag : (patch.tag ?? undefined);
-  const targetMin =
-    patch.targetMin === undefined ? d.targetMin : (patch.targetMin ?? undefined);
+  const targetMin = patch.targetMin === undefined ? d.targetMin : (patch.targetMin ?? undefined);
   const added = current.value !== null;
   const row = await updateEntry(db, u.id, u.tz, "focus", id, {
     ...(patch.minutes === undefined
