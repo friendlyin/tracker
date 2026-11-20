@@ -124,6 +124,15 @@ Secrets are keys and settings the Worker needs that must not be in the repositor
 pnpm wrangler secret put ACCESS_TEAM_DOMAIN   # https://<team>.cloudflareaccess.com
 pnpm wrangler secret put ACCESS_AUD           # the AUD tag from A6
 ```
+Push notifications (optional) need a key pair. `pnpm vapid` prints one; set both, plus a contact:
+```bash
+pnpm vapid                                     # prints VAPID_PUBLIC_KEY=… and VAPID_PRIVATE_KEY=…
+pnpm wrangler secret put VAPID_PUBLIC_KEY
+pnpm wrangler secret put VAPID_PRIVATE_KEY     # keep it secret; a new pair logs out every device
+pnpm wrangler secret put VAPID_SUBJECT         # mailto:you@example.com
+```
+Then on the iPhone (app added to the Home Screen): Settings → Notifications → This device.
+
 Dashboard alternative: **Compute → Workers & Pages → tracker → Settings → Variables and Secrets → + Add** →
 Type **Secret** → name + value → **Deploy**. Values stay hidden after saving.
 

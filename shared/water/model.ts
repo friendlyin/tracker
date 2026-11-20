@@ -114,6 +114,23 @@ export function waterState(inputs: WaterInputsDto, now: number): WaterStateDto {
   };
 }
 
+/**
+ * When pending water reaches the cap without drinking: the time it got there if it is at the cap
+ * now, else the forecast (within 24 h); null if it doesn't.
+ */
+export function capReachAt(inputs: WaterInputsDto, now: number): number | null {
+  const { settings: s, schedule, tz } = inputs;
+  const sim = simulateFrom(inputs, localDate(now, tz), now);
+  if (sim.level >= s.capMl - 1e-6) return heldSince(sim.points, { atLeast: s.capMl });
+  const ahead = simulate(waterModel(s, schedule), {
+    start: { at: now, level: sim.level },
+    entries: [],
+    to: now + 24 * HOUR,
+    clock: scheduleClock(schedule, tz),
+  });
+  return firstReach(ahead.points, s.capMl - 1e-6);
+}
+
 /** Awake minutes of local `date` spent at the cap (a closed day; entries must cover date − 1). */
 export function atCapMinutes(inputs: WaterInputsDto, date: LocalDate): number {
   const { schedule, tz } = inputs;

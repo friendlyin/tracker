@@ -60,6 +60,9 @@ Code map:
 - `shared/<feature>/`: zod schemas, DTO types (`types.ts`) and pure logic shared by PWA and Worker.
 - `shared/habits/` + `worker/services/habits.ts`: habits (definitions in the `habit` table; time
   habits log focus sessions). `src/features/timer/`: the countdown clock and its in-app signal.
+- `shared/notify/` + `worker/services/notify.ts` + `worker/push/`: push notifications (planned after
+  every write, sent by the one-minute cron in `worker/index.ts`); `src/lib/push.ts` subscribes the
+  device, `public/push-sw.js` shows them.
 - `shared/metrics/`: the metrics engine (registry, periods, series, progress);
   `worker/services/stats.ts` reads it; `src/ui/charts/` draws it; `src/features/stats/` holds the
   shared period and stats queries.
@@ -141,6 +144,7 @@ nothing that identifies a real user, including the maintainer and their family.
   - creates are idempotent by id;
   - a delete of something missing succeeds;
   - an action on "whatever is running" names its target.
+  The one exception is registering a device for push (`apiNow`), which needs a connection anyway.
 - **Reuse the shared engines.** Things the user logs go through the tracking engine (tracker + entry).
   Levels that change over time (water debt, focus energy) are configurations of the level engine.
   Every chart, period selector and aggregate goes through the metrics engine (`metric_daily` + metric

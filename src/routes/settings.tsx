@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { resetVariants, setDevMode, useDevState } from "../dev/variants";
+import { NotificationsSection } from "../features/NotificationsSection";
 import { useMe, useUpdateMe } from "../features/profile";
 import { deviceTimeZone } from "../lib/api";
 import { Row, SectionLabel } from "../ui/Row";
@@ -61,6 +62,8 @@ function Settings() {
           onChange={(e) => e.target.value && update.mutate({ sleepTime: e.target.value })}
         />
       </Row>
+
+      <NotificationsSection />
 
       <SectionLabel>Development</SectionLabel>
       <Row>

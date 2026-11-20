@@ -3,6 +3,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/cfworker";
 import type { Db } from "../db";
 import type { User } from "../db/schema";
+import { dayUser } from "../services/levels";
+import { refreshNotify } from "../services/notify";
 import { registerFocusTools } from "./tools/focus";
 import { registerHabitTools } from "./tools/habits";
 import { registerNutritionTools } from "./tools/nutrition";
@@ -31,6 +33,7 @@ export async function handleMcp(req: Request, db: Db, user: User): Promise<Respo
     userId: user.id,
     tz: user.timezone,
     schedule: { wakeTime: user.wakeTime, sleepTime: user.sleepTime },
+    afterWrite: () => refreshNotify(db, dayUser(user, user.timezone)),
   };
 
   const server = new McpServer(

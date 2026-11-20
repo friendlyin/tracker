@@ -29,5 +29,7 @@
     }
   ],
   // OAuth clients, grants and tokens for MCP clients (Claude). No id: created on first deploy, like D1.
-  "kv_namespaces": [{ "binding": "OAUTH_KV" }]
+  "kv_namespaces": [{ "binding": "OAUTH_KV" }],
+  // Push notifications: every minute, send what is due (worker/services/notify.ts).
+  "triggers": { "crons": ["* * * * *"] }
 }

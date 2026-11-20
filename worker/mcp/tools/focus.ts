@@ -134,7 +134,7 @@ export function registerFocusTools(server: McpServer, ctx: McpCtx) {
 
   tool(server, ctx, "set_focus_settings", {
     description:
-      "Change focus settings; only the given values change (nested groups merge field by field). Thresholds must keep urgent ≤ recommend ≤ suggest.",
+      "Change focus settings; only the given values change (nested groups merge field by field). Thresholds must keep urgent ≤ recommend ≤ suggest. remind switches the push reminder at each threshold.",
     input: focusSettingsPatchSchema,
     run: (patch) => svc.setFocusSettings(db, userId, patch),
   });

@@ -14,6 +14,8 @@ export interface McpCtx {
   tz: string;
   /** Wake and sleep time (profile). */
   schedule: DaySchedule;
+  /** Runs after each write tool (replans notifications). */
+  afterWrite?: () => Promise<void>;
 }
 
 export const today = (ctx: McpCtx) => localDate(Date.now(), ctx.tz);
@@ -65,7 +67,9 @@ export function tool<S extends z.ZodObject>(
     // biome-ignore lint/suspicious/noExplicitAny: the SDK infers args from the schema
     (async (args: any) => {
       try {
-        return text(JSON.stringify(forClaude(await def.run(args), ctx.tz)));
+        const result = await def.run(args);
+        if (!def.readOnly) await ctx.afterWrite?.().catch((e) => console.error("after write", e));
+        return text(JSON.stringify(forClaude(result, ctx.tz)));
       } catch (e) {
         if (e instanceof NotFoundError) return text(`not found: ${e.message}`, true);
         if (e instanceof InvalidError) return text(`invalid: ${e.message}`, true);

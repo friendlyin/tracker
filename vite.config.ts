@@ -48,6 +48,8 @@ export default defineConfig({
         // only when it injects its own registration.
         skipWaiting: true,
         clientsClaim: true,
+        // Push and notification taps (public/push-sw.js).
+        importScripts: ["/push-sw.js"],
         // Precache the app shell only; never serve API/MCP/auth from the SW cache.
         navigateFallbackDenylist: [
           /^\/api\//,

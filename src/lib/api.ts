@@ -113,3 +113,21 @@ export async function api<T>(path: string): Promise<T> {
 export function queueWrite(path: string, opts: { method?: string; body?: unknown } = {}) {
   return outbox.enqueue({ method: opts.method ?? "POST", path, body: opts.body });
 }
+
+/**
+ * A write that needs the server now and is not data (registering this device for push). Not queued:
+ * it fails without a connection, and the caller shows that.
+ */
+export async function apiNow<T = unknown>(
+  path: string,
+  method: string,
+  body?: unknown,
+): Promise<T | null> {
+  const res = await request(path, method, deviceTimeZone(), body);
+  if (needsLogin(res)) reloadForLogin();
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new ApiError(res.status || 401, text || res.statusText);
+  }
+  return res.status === 204 ? null : ((await res.json()) as T);
+}

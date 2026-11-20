@@ -23,7 +23,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply tracker-db --remote",
     "prepare": "git config core.hooksPath .githooks || true",
     "check:private": "scripts/check-private.sh all",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator",
+    "vapid": "node scripts/vapid.mjs"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^1.2.4",

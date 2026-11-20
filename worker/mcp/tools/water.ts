@@ -64,7 +64,7 @@ export function registerWaterTools(server: McpServer, ctx: McpCtx) {
 
   tool(server, ctx, "set_water_settings", {
     description:
-      "Change water settings; only the given values change. targetMl is the daily target; the build-up rate follows from it and the user's wake and sleep times.",
+      "Change water settings; only the given values change. targetMl is the daily target; the build-up rate follows from it and the user's wake and sleep times. remindCap / remindUrgent switch the push reminders.",
     input: waterSettingsPatchSchema,
     run: (patch) => svc.setWaterSettings(db, u, patch),
   });

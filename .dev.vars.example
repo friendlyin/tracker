@@ -6,3 +6,8 @@ DEV_USER_EMAIL=you@example.com
 # Production values are Cloudflare secrets (see docs/cloudflare-setup.md A7), not set here:
 # ACCESS_TEAM_DOMAIN=https://<team>.cloudflareaccess.com
 # ACCESS_AUD=<application audience tag>
+
+# Push notifications (optional locally): `pnpm vapid` prints a key pair.
+# VAPID_PUBLIC_KEY=
+# VAPID_PRIVATE_KEY=
+# VAPID_SUBJECT=mailto:you@example.com

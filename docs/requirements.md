@@ -464,7 +464,7 @@ out. It is a second configuration of the level engine.
 - entries: `list_focus(date | from–to)`, `update_focus_entry` (minutes, tag) and `delete_focus_entry`
 - settings: `get_focus_settings`, `set_focus_settings`
 
-Web Push reminders (for focus and water) are in the backlog.
+Push reminders for focus and water: see "Timers and notifications".
 
 **Decided details**
 - **Rates:** only the first rule that applies counts, in this order:
@@ -678,6 +678,38 @@ on the phone.
 - Stored as `targetMin` in the focus entry's `data`. `start_focus` takes `minutes`;
   `update_focus_entry` takes `targetMin`.
 
+**Push notifications ✅**
+- Enabled per device in Settings → Notifications → This device (a tap asks for permission). "Send
+  test" checks delivery.
+- Sent:
+
+  | Notification | When | Switch (default) |
+  |---|---|---|
+  | Water: "500 ml due" | pending water reaches the cap | water settings: at the cap (on) |
+  | Water: "500 ml due for 1 h" | the urgency delay after that (awake time) | water settings: when urgent (on) |
+  | "Energy 40": time for an unfocus break | energy falls to a threshold (the forecast assumes the running session continues) | focus settings: remind at 60 / 40 / 20 (40 on) |
+  | "Deep focus" / a habit's name: "90 min done" | a countdown reaches zero | Settings: timer ends (on) |
+
+- Reminders are sent only while awake: one that falls in the night waits until the wake time (if its
+  condition still holds). Each occurrence is sent once; energy that recovers and falls again sends
+  again. A reminder more than 30 minutes late (push was off) is dropped.
+- A notification opens its screen. A newer one of the same kind replaces the older one.
+- MCP: `set_water_settings` (`remindCap`, `remindUrgent`) and `set_focus_settings` (`remind`). Devices
+  are not exposed to Claude.
+
+**Implementation notes**
+- `shared/notify/plan.ts` computes the reminders from the same simulations as the app
+  (`capReachAt`, `fallTime`), plus the running countdown. It is pure and unit-tested.
+- After every successful API write (a middleware) and every MCP write tool, the server replans the
+  user and stores the next due time in `notify_due`. A cron runs every minute, replans the users that
+  are due, sends, and stores what was sent in `user_setting` key `notify.sent`.
+- Web Push without a library (`worker/push/webpush.ts`): RFC 8291 encryption and a VAPID token with
+  WebCrypto, checked against the RFC's example. A device whose push service answers 404 or 410 is
+  removed.
+- The service worker imports `public/push-sw.js` for `push` and `notificationclick`. Every push shows
+  a notification (iOS revokes subscriptions that receive silent pushes).
+- Registering the device calls the API directly, not through the outbox: it needs a connection anyway.
+
 **iOS limits** (web apps, not native)
 - No live, counting timer in notifications or on the lock screen: Live Activities and ongoing
   notifications are native-only. A notification arrives when the countdown ends instead.
@@ -765,7 +797,6 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 - Workout program modes: upper/lower split, focus on chosen groups.
 - Body weight tracking (useful for protein targets and progress).
 - Passkey login.
-- Web Push reminders (water urgency, focus energy).
 - Custom domain (later; reconnect Claude and reinstall the PWA when switching).
 - Data export (CSV/JSON).
 
@@ -817,3 +848,4 @@ Trends come from the stats engine. Claude can correlate mood with sleep, workout
 | 2026-11-20 | Weekly set targets are set per muscle group instead of per major/minor category (calves need far fewer sets than any category). Settings stored per category convert to per-group targets with the same numbers; calves start at 3. |
 | 2026-11-20 | A focus session's energy shows the total change while it ran (baseline drain included), not the extra over resting, so it matches the bar. |
 | 2026-11-20 | Habits are user-defined items of one system tracker (a `habit` table for definitions). A time habit's progress is stored as focus sessions with the habit's id (kind `other` when it doesn't count as focus), so energy, the one running timer and the countdown are shared. The starter habit, a daily 10-minute meditation, counts as moderate focus. |
+| 2026-11-20 | Push notifications are planned on the server: replanned after every write into `notify_due`, sent by a one-minute cron. iOS web apps cannot schedule local notifications or show a live timer, so a countdown's end is a push. |

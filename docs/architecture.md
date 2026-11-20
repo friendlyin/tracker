@@ -188,6 +188,15 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
 - For insights, read tools return compact aggregated data (daily totals, weekly sets per muscle group)
   so Claude can reason over months without pulling raw rows.
 
+**Push and scheduled work.**
+- The Worker also has a `scheduled` handler, run every minute by a Cron Trigger (`wrangler.jsonc`). It
+  sends the push notifications that are due (`worker/services/notify.ts`). Each run reads only the
+  `notify_due` rows that are due (indexed), so an idle minute costs one small query.
+- Writes replan the user's next notification (a middleware on the API, a hook on MCP write tools).
+- Web Push is implemented with WebCrypto (`worker/push/webpush.ts`, no library). It needs the secrets
+  `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (docs/cloudflare-setup.md A7). Without
+  them push is off and the rest of the app works.
+
 ## 5. PWA and caching: recommendation
 
 | Level | What | Value | When |
@@ -195,7 +204,7 @@ every MCP tool uses. Each invited person connects their own Claude with their ow
 | 1 | Precache the app shell (HTML/JS/CSS/icons) with the service worker | Instant launch, the app opens without signal. Already configured. | Iteration 1 |
 | 2 | Persist the TanStack Query cache to IndexedDB | Last-known data shows instantly and offline. | Iteration 1–2 ✅ |
 | 3 | Offline write queue (outbox) for every write | Gyms often have poor signal. Logging a set must never fail. Writes queue locally and sync later. | Iteration 8 ✅ |
-| 4 | Web Push notifications | Water urgency reminders. iOS supports push for home-screen PWAs. | Backlog |
+| 4 | Web Push notifications | Water and energy reminders, timer ends. iOS supports push for home-screen PWAs (16.4+). | ✅ |
 
 **Writes (level 3).**
 - `queueWrite` (`src/lib/api.ts`) puts every write in the outbox (`src/lib/outbox.ts`), an ordered

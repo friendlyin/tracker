@@ -32,6 +32,10 @@ const base = z.object({
     .default({ suggest: 60, recommend: 40, urgent: 20 }),
   /** Tags offered for moderate focus sessions. */
   tags: z.array(tag).max(20).default(["podcast", "film", "reading"]),
+  /** Push reminders when energy falls to each threshold. */
+  remind: z
+    .object({ suggest: z.boolean(), recommend: z.boolean(), urgent: z.boolean() })
+    .default({ suggest: false, recommend: true, urgent: false }),
 });
 
 export const focusSettingsSchema = base.superRefine((s, ctx) => {
@@ -61,6 +65,10 @@ export const focusSettingsPatchSchema = z.object({
   restoreFloor: z.number().min(0).max(1).optional(),
   thresholds: z.object({ suggest: points, recommend: points, urgent: points }).partial().optional(),
   tags: z.array(tag).max(20).optional(),
+  remind: z
+    .object({ suggest: z.boolean(), recommend: z.boolean(), urgent: z.boolean() })
+    .partial()
+    .optional(),
 });
 
 export type FocusSettingsPatch = z.infer<typeof focusSettingsPatchSchema>;
@@ -89,5 +97,6 @@ export function applyFocusSettingsPatch(c: FocusSettings, p: FocusSettingsPatch)
     restoreFloor: p.restoreFloor ?? c.restoreFloor,
     thresholds: { ...c.thresholds, ...defined(p.thresholds) },
     tags: p.tags ?? c.tags,
+    remind: { ...c.remind, ...defined(p.remind) },
   };
 }

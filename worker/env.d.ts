@@ -9,4 +9,9 @@ interface Env {
   ACCESS_AUD?: string;
   /** Local development only: acts as this user on localhost. */
   DEV_USER_EMAIL?: string;
+  /** Web Push (VAPID) keys from `pnpm vapid`: base64url public key and private scalar. */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  /** Contact for push services, e.g. mailto:you@example.com. */
+  VAPID_SUBJECT?: string;
 }

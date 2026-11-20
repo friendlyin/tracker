@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { WaterSettingsPatch } from "../../../shared/water/settings";
 import { useUpdateWaterSettings, useWaterSettings } from "../../features/water/api";
-import { SectionLabel } from "../../ui/Row";
+import { Row, SectionLabel } from "../../ui/Row";
 import { Screen } from "../../ui/Screen";
 import { Stepper } from "../../ui/Stepper";
+import { Toggle } from "../../ui/Toggle";
 
 export const Route = createFileRoute("/water/settings")({ component: WaterSettingsScreen });
 
@@ -102,6 +103,24 @@ function WaterSettingsScreen() {
               onChange={(n) => n !== null && set({ creditCapMl: Math.round(n) })}
             />
           </div>
+
+          <SectionLabel>Reminders</SectionLabel>
+          <Row>
+            <span className="flex-1 text-[17px]">At the cap</span>
+            <Toggle
+              checked={s.remindCap}
+              onChange={(remindCap) => set({ remindCap })}
+              label="Remind at the cap"
+            />
+          </Row>
+          <Row>
+            <span className="flex-1 text-[17px]">When urgent</span>
+            <Toggle
+              checked={s.remindUrgent}
+              onChange={(remindUrgent) => set({ remindUrgent })}
+              label="Remind when urgent"
+            />
+          </Row>
         </>
       )}
     </Screen>

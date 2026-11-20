@@ -18,6 +18,9 @@ const fields = {
   creditCapMl: ml(1000),
   /** The two one-tap amounts; the first is also the button on the home tile. */
   quickMl: z.tuple([ml(3000).min(10), ml(3000).min(10)]),
+  /** Push reminders: when pending water reaches the cap, and when it gets urgent. */
+  remindCap: z.boolean(),
+  remindUrgent: z.boolean(),
 };
 
 export const waterSettingsSchema = z.object({
@@ -28,6 +31,8 @@ export const waterSettingsSchema = z.object({
   creditFactor: fields.creditFactor.default(0.3),
   creditCapMl: fields.creditCapMl.default(200),
   quickMl: fields.quickMl.default([250, 500]),
+  remindCap: fields.remindCap.default(true),
+  remindUrgent: fields.remindUrgent.default(true),
 });
 
 export type WaterSettings = z.infer<typeof waterSettingsSchema>;

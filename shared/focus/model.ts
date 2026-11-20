@@ -4,6 +4,7 @@ import {
   durationWhere,
   firstFall,
   firstReach,
+  heldSince,
   type LevelClock,
   type LevelModel,
   type LevelPoint,
@@ -191,6 +192,25 @@ function forecast(
     }
   }
   return null;
+}
+
+/**
+ * When energy falls to `level` if the current activity continues (within 12 h): the time it got
+ * there if it is at or below it now; null if it doesn't.
+ */
+export function fallTime(inputs: FocusInputsDto, now: number, level: number): number | null {
+  const day = focusDay(inputs, now);
+  const sim = simulateDay(inputs, day, now);
+  if (sim.level <= level + 1e-6) return heldSince(sim.points, { atMost: level });
+  const running = inputs.entries.find((e) => isRunning(e) && e.startedAt <= now);
+  const ahead = simulate(focusModel(inputs.settings, day.ceiling), {
+    start: { at: now, level: sim.level },
+    entries: [],
+    spans: running ? [{ from: now, to: now + FORECAST_H * HOUR, kind: running.kind }] : [],
+    to: now + FORECAST_H * HOUR,
+    clock: dayClock(inputs, day),
+  });
+  return firstFall(ahead.points, level, now);
 }
 
 const minutesIn = (e: FocusEntryDto, from: number, to: number) =>

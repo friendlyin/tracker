@@ -10,10 +10,13 @@ import { withOAuth } from "./oauth";
 import { focusRoutes } from "./routes/focus";
 import { habitRoutes } from "./routes/habits";
 import { nutritionRoutes } from "./routes/nutrition";
+import { pushRoutes } from "./routes/push";
 import { statsRoutes } from "./routes/stats";
 import { waterRoutes } from "./routes/water";
 import { workoutRoutes } from "./routes/workouts";
 import { InvalidError, NotFoundError } from "./services/errors";
+import { dayUser } from "./services/levels";
+import { refreshNotify, runDue, vapidFrom } from "./services/notify";
 import { getDayStatus } from "./services/nutrition";
 import { ensureUser, updateProfile } from "./services/users";
 import { getActiveWorkout, getWeekPlan } from "./services/workouts";
@@ -30,6 +33,19 @@ const api = new Hono<AppEnv>()
     return c.json({ ok: row?.ok === 1 });
   })
   .use(requireUser)
+  // Any change can move a reminder (a drink, a session, settings, the day schedule): replan after
+  // every successful write, without delaying the answer.
+  .use(async (c, next) => {
+    await next();
+    if (c.req.method === "GET" || c.res.status >= 300 || c.req.path.endsWith("/push/test")) return;
+    const { db, user, tz } = c.var;
+    const work = refreshNotify(db, dayUser(user, tz)).catch((e) => console.error("replan", e));
+    try {
+      c.executionCtx.waitUntil(work);
+    } catch {
+      await work;
+    }
+  })
   .get("/me", (c) => c.json(toMe(c.var.user)))
   .patch("/me", zValidator("json", profilePatchSchema), async (c) =>
     c.json(toMe(await updateProfile(c.var.db, c.var.user.id, c.req.valid("json")))),
@@ -50,7 +66,8 @@ const api = new Hono<AppEnv>()
   .route("/", waterRoutes)
   .route("/", focusRoutes)
   .route("/", statsRoutes)
-  .route("/", habitRoutes);
+  .route("/", habitRoutes)
+  .route("/", pushRoutes);
 
 api.onError((err, c) => {
   if (err instanceof NotFoundError) return c.json({ error: "not_found", what: err.message }, 404);
@@ -82,5 +99,11 @@ export default {
       if (!isLoopback(url.hostname)) return api.fetch(req, env, ctx);
     }
     return withAuth(req, env, ctx);
+  },
+
+  /** Every minute: send the notifications that are due. */
+  async scheduled(_controller, env, ctx) {
+    const vapid = vapidFrom(env);
+    if (vapid) ctx.waitUntil(runDue(getDb(env.DB), vapid));
   },
 } satisfies ExportedHandler<Env>;

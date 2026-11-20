@@ -168,6 +168,30 @@ export const habit = sqliteTable(
   (t) => [index("habit_user_idx").on(t.userId)],
 );
 
+/** Web Push subscriptions, one per device that enabled notifications. */
+export const pushSubscription = sqliteTable(
+  "push_subscription",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [index("push_subscription_user_idx").on(t.userId)],
+);
+
+/** When each user's next notification is due; the one-minute cron reads the due rows. */
+export const notifyDue = sqliteTable(
+  "notify_due",
+  {
+    userId: text("user_id").primaryKey(),
+    dueAt: integer("due_at").notNull(),
+  },
+  (t) => [index("notify_due_at_idx").on(t.dueAt)],
+);
+
 /** Manual day-type overrides for nutrition targets. Days without a row follow workouts. */
 export const dayType = sqliteTable(
   "day_type",

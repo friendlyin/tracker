@@ -8,10 +8,11 @@ import {
 } from "../../../shared/focus/settings";
 import { useFocusSettings, useUpdateFocusSettings } from "../../features/focus/api";
 import { CloseIcon, PlusIcon } from "../../ui/icons";
-import { SectionLabel } from "../../ui/Row";
+import { Row, SectionLabel } from "../../ui/Row";
 import { Screen } from "../../ui/Screen";
 import { Segmented } from "../../ui/Segmented";
 import { Stepper } from "../../ui/Stepper";
+import { Toggle } from "../../ui/Toggle";
 
 export const Route = createFileRoute("/focus/settings")({ component: FocusSettingsScreen });
 
@@ -170,6 +171,18 @@ function FocusSettingsScreen() {
           {update.isError && (
             <div className="mt-2 text-[13px] text-warn">{update.error.message}</div>
           )}
+
+          <SectionLabel>Remind at</SectionLabel>
+          {(["suggest", "recommend", "urgent"] as const).map((k) => (
+            <Row key={k}>
+              <span className="num flex-1 text-[17px]">{s.thresholds[k]}</span>
+              <Toggle
+                checked={s.remind[k]}
+                onChange={(on) => set({ remind: { [k]: on } })}
+                label={`Remind at ${s.thresholds[k]}`}
+              />
+            </Row>
+          ))}
 
           <SectionLabel>Moderate tags</SectionLabel>
           <Tags tags={s.tags} onChange={(tags) => set({ tags })} />
